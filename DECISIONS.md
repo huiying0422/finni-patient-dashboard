@@ -66,9 +66,9 @@ Buttons are fully **pill-shaped** (`rounded-full`). Cards use **16px** corner ra
 
 ### List view and `usePatients` hook
 
-The patient list is rendered by `PatientList` using a `usePatients` hook that wraps `listPatients` from the service layer.
+The patient list is rendered by `PatientList` using a `usePatients` hook that subscribes to `subscribePatients` from the service layer.
 
-**Why a hook:** The service returns data; the hook owns UI state (`loading`, `error`, `patients`) and exposes `refresh`. Components stay presentational and do not duplicate fetch logic.
+**Why a hook:** The service returns data; the hook owns UI state (`loading`, `error`, `patients`) via a live Firestore subscription. Components stay presentational and do not duplicate fetch logic.
 
 **Why explicit states:** We render three distinct UI states — loading skeleton, empty state, and error state — instead of a blank screen or generic spinner. This gives users clear feedback and makes edge cases testable.
 
@@ -89,13 +89,13 @@ The add-patient flow is built from three pieces:
 
 1. **`src/lib/patientFields.ts`** — a declarative array describing each field (`key`, `label`, `inputType`, optional `options`). Covers name fields, date of birth, status select, and nested address subfields.
 2. **`src/components/PatientForm.tsx`** — maps over `patientFields` to render inputs, using **React Hook Form** with **`zodResolver(patientFormSchema)`** for validation aligned with the service layer.
-3. **`src/components/AddPatientDialog.tsx`** — shadcn Dialog opened by an "Add patient" pill button in the list header; on valid submit calls `addPatient`, closes, and triggers list refresh.
+3. **`src/components/AddPatientDialog.tsx`** — shadcn Dialog opened by an "Add patient" pill button in the list header; on valid submit calls `addPatient` and closes.
 
 **Why data-driven fields:** Adding a new field later is a config change in `patientFields.ts` plus the corresponding entry in `patientFormSchema` — not a form rewrite. The mapper handles text, date, and select input types from the config.
 
 **Why RHF + Zod together:** React Hook Form manages form state and inline errors in the UI; Zod (via `zodResolver`) enforces the same rules the service uses on submit. Invalid input (empty name, future DOB, bad ZIP) is blocked before Firestore.
 
-**Why dialog in list header:** The add action lives where users manage the patient list, and `onPatientAdded` calls `refresh` from `usePatients` so new records appear immediately without a page reload.
+**Why dialog in list header:** The add action lives where users manage the patient list; the live subscription updates the list automatically after create.
 
 ### Address: optional line 2, browser autofill, normalization, third-party verification parked for PHI/BAA reasons
 
@@ -119,7 +119,7 @@ Zod normalization turns empty optional fields (`middleName`, `address.line2`) in
 
 ### Detail, edit, delete: one reused form
 
-Each patient row opens a **shadcn Sheet** showing all fields plus `createdAt` and `updatedAt`. Edit mode reuses the same **`PatientForm`** component from add flow, pre-filled via `patientToFormValues()`. Save calls `updatePatient` and refreshes the list; delete is guarded by an **AlertDialog** confirm before calling `deletePatient`.
+Each patient row opens a **shadcn Sheet** showing all fields plus `createdAt` and `updatedAt`. Edit mode reuses the same **`PatientForm`** component from add flow, pre-filled via `patientToFormValues()`. Save calls `updatePatient`; delete is guarded by an **AlertDialog** confirm before calling `deletePatient`.
 
 **Why reuse the form:** Add and edit share identical fields, validation rules, and input types. One `PatientForm` mapped from `patientFields` means validation or UI changes apply to both flows automatically — no duplicated markup or diverging Zod rules.
 
@@ -165,6 +165,22 @@ We added audit-oriented metadata and documentation for a healthcare context:
 **Why rules in-repo:** Security rules are the server-side enforcement layer for PHI. Committing a least-privilege sketch makes the production intent reviewable even while dev uses open rules.
 
 **Why README PHI section:** Reviewers and future operators need to know this is a demo posture — data minimization, no PHI in logs/LLMs, encryption defaults, and BAA requirement for real production.
+
+---
+
+## Phase 7: Deploy and hygiene
+
+### Deploy and hygiene
+
+Final cleanup before handoff:
+
+- **Removed dead code** — unused Vite starter assets (`App.css`, template SVGs/hero image), unused service exports (`listPatients`, `getPatient`), and the unused `@fontsource-variable/geist` dependency (app uses Outfit via Google Fonts).
+- **No console noise** — no stray `console.log` calls in source.
+- **No `any` types** — TypeScript strict throughout; Firestore snapshots cast via typed helpers.
+- **`.gitignore`** — covers `node_modules`, `.env`, and build output (`dist`).
+- **Production build** — `pnpm build` (tsc + vite) passes with zero errors.
+
+**Why a hygiene pass:** Six phases of rapid iteration leave starter-template cruft and unused exports. Cleaning before deploy keeps the repo reviewable and the bundle lean.
 
 ---
 

@@ -9,9 +9,6 @@ export function usePatients() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    setLoading(true);
-    setError(null);
-
     const unsubscribe = subscribePatients(
       (nextPatients) => {
         setPatients(nextPatients);

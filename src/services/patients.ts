@@ -3,8 +3,6 @@ import {
   collection,
   deleteDoc,
   doc,
-  getDoc,
-  getDocs,
   onSnapshot,
   orderBy,
   query,
@@ -49,17 +47,6 @@ function toPatient(id: string, data: Record<string, unknown>): Patient {
   return { id, ...data } as Patient;
 }
 
-/** List all patients, newest first. */
-export async function listPatients(): Promise<Patient[]> {
-  const patientsQuery = query(
-    collection(db, PATIENTS_COLLECTION),
-    orderBy("createdAt", "desc"),
-  );
-  const snapshot = await getDocs(patientsQuery);
-
-  return snapshot.docs.map((docSnap) => toPatient(docSnap.id, docSnap.data()));
-}
-
 /** Subscribe to live patient list updates; returns an unsubscribe function. */
 export function subscribePatients(
   onPatients: (patients: Patient[]) => void,
@@ -82,17 +69,6 @@ export function subscribePatients(
       onError(error);
     },
   );
-}
-
-/** Fetch a single patient by id, or null if not found. */
-export async function getPatient(id: string): Promise<Patient | null> {
-  const docSnap = await getDoc(doc(db, PATIENTS_COLLECTION, id));
-
-  if (!docSnap.exists()) {
-    return null;
-  }
-
-  return toPatient(docSnap.id, docSnap.data());
 }
 
 /** Validate and create a new patient; returns the new document id. */
