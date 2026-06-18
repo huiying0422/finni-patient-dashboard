@@ -11,16 +11,22 @@ export type FirebaseConfigField = (typeof FIREBASE_CONFIG_FIELDS)[number];
 
 export type ResolvedFirebaseConfig = Record<FirebaseConfigField, string>;
 
-/** Maps each Firebase field to VITE_* env var names (required naming on Vercel). */
+/** Accepted env var names per Firebase field (first match wins). */
 export const FIREBASE_ENV_ALIASES: Record<
   FirebaseConfigField,
-  readonly [string, string]
+  readonly string[]
 > = {
   apiKey: ["VITE_FIREBASE_API_KEY", "apiKey"],
   authDomain: ["VITE_FIREBASE_AUTH_DOMAIN", "authDomain"],
   projectId: ["VITE_FIREBASE_PROJECT_ID", "projectId"],
   storageBucket: ["VITE_FIREBASE_STORAGE_BUCKET", "storageBucket"],
-  messagingSenderId: ["VITE_FIREBASE_MESSAGING_SENDER_ID", "messagingSenderId"],
+  messagingSenderId: [
+    "VITE_FIREBASE_MESSAGING_SENDER_ID",
+    // Common Vercel typos / alternate names:
+    "VITE_FIREBASE_MESSAGING_SENDER",
+    "VITE_MESSAGING_SENDER_ID",
+    "messagingSenderId",
+  ],
   appId: ["VITE_FIREBASE_APP_ID", "appId"],
 };
 
@@ -30,13 +36,14 @@ function pickEnv(
 ): string {
   for (const key of keys) {
     const value = env[key];
-    // Skip empty strings so a blank VITE_* var does not block a valid apiKey/projectId on Vercel.
-    if (value !== undefined && value !== "") return value;
+    if (value === undefined) continue;
+    const trimmed = value.trim();
+    if (trimmed !== "") return trimmed;
   }
   return "";
 }
 
-/** Resolve Firebase config from process env at build time (supports both naming conventions). */
+/** Resolve Firebase config from process env at build time. */
 export function resolveFirebaseEnv(
   env: Record<string, string | undefined>,
 ): ResolvedFirebaseConfig {
@@ -48,4 +55,52 @@ export function resolveFirebaseEnv(
     messagingSenderId: pickEnv(env, FIREBASE_ENV_ALIASES.messagingSenderId),
     appId: pickEnv(env, FIREBASE_ENV_ALIASES.appId),
   };
+}
+
+export type FirebaseEnvKeyStatus = "set" | "empty" | "unset";
+
+/** Build-time audit — which env keys exist (no secret values). */
+export function auditFirebaseEnvKeys(
+  env: Record<string, string | undefined>,
+): Record<string, FirebaseEnvKeyStatus> {
+  const keys = new Set(
+    FIREBASE_CONFIG_FIELDS.flatMap((field) => FIREBASE_ENV_ALIASES[field]),
+  );
+  return Object.fromEntries(
+    [...keys].map((key) => {
+      const value = env[key];
+      const status: FirebaseEnvKeyStatus =
+        value === undefined
+          ? "unset"
+          : value.trim() === ""
+            ? "empty"
+            : "set";
+      return [key, status];
+    }),
+  );
+}
+
+/** Human-readable build error listing exact Vercel names to set. */
+export function formatMissingFirebaseEnvError(
+  env: Record<string, string | undefined>,
+): string {
+  const config = resolveFirebaseEnv(env);
+  const missing = FIREBASE_CONFIG_FIELDS.filter((field) => !config[field]);
+
+  if (missing.length === 0) return "";
+
+  const audit = auditFirebaseEnvKeys(env);
+  const lines = missing.map((field) => {
+    const keys = FIREBASE_ENV_ALIASES[field];
+    const keyStatus = keys
+      .map((key) => `${key}=${audit[key]}`)
+      .join(", ");
+    return `  • ${field}: set ${keys[0]} (checked: ${keyStatus})`;
+  });
+
+  return (
+    "Firebase env incomplete at build time. In Vercel → Settings → Environment Variables:\n" +
+    lines.join("\n") +
+    "\nEnable Production + Preview, save, then Redeploy."
+  );
 }

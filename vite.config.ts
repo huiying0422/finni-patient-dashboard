@@ -3,24 +3,22 @@ import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 import path from "node:path";
 import {
-  FIREBASE_CONFIG_FIELDS,
+  auditFirebaseEnvKeys,
+  formatMissingFirebaseEnvError,
   resolveFirebaseEnv,
 } from "./src/lib/resolveFirebaseEnv";
 
 function validateFirebaseEnvPlugin(
+  env: Record<string, string | undefined>,
   firebaseConfig: ReturnType<typeof resolveFirebaseEnv>,
 ): Plugin {
   return {
     name: "validate-firebase-env",
     buildStart() {
-      const missing = FIREBASE_CONFIG_FIELDS.filter(
-        (field) => !firebaseConfig[field],
-      );
-      if (missing.length > 0) {
-        this.error(
-          `Firebase build config incomplete (missing: ${missing.join(", ")}). ` +
-            "Set apiKey/projectId/… or VITE_FIREBASE_* in Vercel env vars, then redeploy.",
-        );
+      const message = formatMissingFirebaseEnvError(env);
+      if (message) {
+        console.log("[firebase] env audit:", auditFirebaseEnvKeys(env));
+        this.error(message);
       }
       console.log(
         `[firebase] embedding projectId=${firebaseConfig.projectId} for ${process.env.VERCEL_ENV ?? "local"} build`,
@@ -36,7 +34,7 @@ export default defineConfig(({ mode }) => {
 
   return {
     plugins: [
-      validateFirebaseEnvPlugin(firebaseConfig),
+      validateFirebaseEnvPlugin(env, firebaseConfig),
       react(),
       tailwindcss(),
     ],
