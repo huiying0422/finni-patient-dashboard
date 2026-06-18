@@ -8,6 +8,7 @@ import { useMemo, useState } from "react";
 
 import { AddPatientDialog } from "@/components/AddPatientDialog";
 import { PatientDetailSheet } from "@/components/PatientDetailSheet";
+import { SeedTestDataButton } from "@/components/SeedTestDataButton";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -158,7 +159,11 @@ export function PatientList() {
               Manage patient records across the care lifecycle.
             </CardDescription>
           </div>
-          <AddPatientDialog />
+          <div className="flex flex-col items-stretch gap-2 sm:items-end">
+            <AddPatientDialog />
+            {/* TEMPORARY — remove SeedTestDataButton import and usage when demo seeding is done. */}
+            <SeedTestDataButton />
+          </div>
         </CardHeader>
 
         <CardContent className="space-y-4">
