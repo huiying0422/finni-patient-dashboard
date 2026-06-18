@@ -9,15 +9,15 @@ import {
   deleteDoc,
   doc,
   onSnapshot,
-  orderBy,
-  query,
   serverTimestamp,
   updateDoc,
+  type FirestoreError,
   type Unsubscribe,
 } from "firebase/firestore";
 
 import { PLACEHOLDER_EDITOR_ID } from "@/lib/constants";
 import { firebaseSetupMessage, requireDb } from "@/lib/firebase";
+import { sortPatientsByCreatedAt } from "@/lib/sortPatients";
 import {
   patientFormSchema,
   type Patient,
@@ -25,6 +25,19 @@ import {
 } from "@/lib/types";
 
 const PATIENTS_COLLECTION = "patients";
+
+function formatFirestoreError(error: FirestoreError): string {
+  if (error.code === "permission-denied") {
+    return (
+      "Firestore permission denied. In Firebase Console → Firestore → Rules, use open dev rules " +
+      "(allow read, write: if true) for this demo, then publish rules."
+    );
+  }
+  if (error.code === "unavailable") {
+    return "Firestore is unavailable. Check your network connection and try again.";
+  }
+  return error.message || "Failed to load patients";
+}
 
 /** Firestore rejects undefined field values — omit them before write. */
 function omitUndefined<T>(value: T): T {
@@ -63,22 +76,20 @@ export function subscribePatients(
   }
 
   const firestore = requireDb();
-  const patientsQuery = query(
-    collection(firestore, PATIENTS_COLLECTION),
-    orderBy("createdAt", "desc"),
-  );
+  // No orderBy — documents missing createdAt are still returned; we sort client-side.
+  const patientsCollection = collection(firestore, PATIENTS_COLLECTION);
 
-  // onSnapshot pushes changes whenever any client adds, edits, or deletes a patient,
-  // so the list stays current without manual refresh.
   return onSnapshot(
-    patientsQuery,
+    patientsCollection,
     (snapshot) => {
-      const patients = snapshot.docs.map((docSnap) =>
-        toPatient(docSnap.id, docSnap.data()),
+      const patients = sortPatientsByCreatedAt(
+        snapshot.docs.map((docSnap) => toPatient(docSnap.id, docSnap.data())),
       );
       onPatients(patients);
     },
-    onError,
+    (err) => {
+      onError(new Error(formatFirestoreError(err)));
+    },
   );
 }
 

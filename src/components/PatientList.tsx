@@ -124,7 +124,7 @@ function PatientCard({
 }
 
 export function PatientList() {
-  const { patients, loading, error } = usePatients();
+  const { patients, loading, error, projectId } = usePatients();
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("All");
   const [selectedPatientId, setSelectedPatientId] = useState<string | null>(
@@ -276,6 +276,14 @@ export function PatientList() {
             <p className="text-sm text-muted-foreground">
               Showing {filteredPatients.length} of {patients.length} patients
               {hasActiveFilters ? " (filtered)" : ""}
+              {" · "}
+              <span className="font-mono text-xs">Firebase: {projectId}</span>
+            </p>
+          )}
+
+          {!loading && error && (
+            <p className="text-xs font-mono text-muted-foreground">
+              Firebase project: {projectId}
             </p>
           )}
         </CardContent>

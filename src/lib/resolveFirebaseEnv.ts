@@ -29,7 +29,9 @@ function pickEnv(
   keys: readonly string[],
 ): string {
   for (const key of keys) {
-    if (env[key] !== undefined) return env[key]!;
+    const value = env[key];
+    // Skip empty strings so a blank VITE_* var does not block a valid apiKey/projectId on Vercel.
+    if (value !== undefined && value !== "") return value;
   }
   return "";
 }

@@ -99,10 +99,24 @@ This is a **Vite SPA** — Firebase runs in the browser, but **Firebase config i
 Local `.env` uses `VITE_FIREBASE_*`. Vercel can use either naming style — both are read at build time.
 
 3. In **Firebase Console → Project settings**, confirm the web app `projectId` matches `VITE_FIREBASE_PROJECT_ID`.
-4. If your Google Cloud **API key** has HTTP referrer restrictions, allow your Vercel domain (e.g. `https://*.vercel.app/*`).
-5. Firestore **rules** must allow read/write for testing (see above).
+4. **Firestore rules (required):** Firebase Console → Firestore → Rules → publish dev-open rules:
+   ```javascript
+   rules_version = '2';
+   service cloud.firestore {
+     match /databases/{database}/documents {
+       match /{document=**} {
+         allow read, write: if true;  // DEV ONLY
+       }
+     }
+   }
+   ```
+   The committed `firestore.rules` file is a deny-all sketch — the Console rules must be published separately.
+5. **API key referrers (required for Vercel):** Google Cloud Console → APIs & Services → Credentials → your browser API key → Application restrictions → HTTP referrers → add:
+   - `https://*.vercel.app/*`
+   - `http://localhost:*` (for local dev)
+6. After deploy, the patient list footer shows `Firebase: your-project-id` — confirm it matches your Firebase project.
 
-If env vars are missing at build time, the app shows a **Firebase not configured** banner and CRUD will fail immediately instead of hanging on “Saving…”.
+If env vars are missing at build time, the Vercel **build fails** with a clear error. If the build succeeds but the list is empty or times out, check steps 4–5 above.
 
 ---
 
