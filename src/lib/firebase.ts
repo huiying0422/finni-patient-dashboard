@@ -3,7 +3,6 @@ import { getFirestore, type Firestore } from "firebase/firestore";
 import {
   firebaseConfig,
   firebaseSetupMessage,
-  getFirebaseEnvDiagnostics,
   getMissingFirebaseFields,
   isFirebaseConfigured,
 } from "./firebaseConfig";
