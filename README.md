@@ -14,6 +14,22 @@ Three pillars guided every build decision. For live-demo stack scripts, scope bo
 
 ---
 
+## Time investment
+
+Approximate hours for this take-home (single builder, AI-assisted workflow):
+
+| Phase | Hours | What it covered |
+|-------|------:|-----------------|
+| **Setup** | 1 | Firebase project, `.env` / schemas, service layer, path alias, smoke test |
+| **Design** | 1 | Finni tokens from public CSS, shadcn/Radix/Nova theming, `patientFields` config |
+| **Build** | 1 | List, add/edit/delete CRUD, search/filter, toasts, compliance metadata |
+| **Debug & deploy** | 1 | Firestore rules, env/referrer issues, Vercel → Firebase Hosting, timeouts |
+| **Total** | **4** | |
+
+Deployment and incident notes: [docs/DEBUG_LOG.md](./docs/DEBUG_LOG.md).
+
+---
+
 ## Stack
 
 | Layer | Technology | Why (summary) |
@@ -103,6 +119,17 @@ allow read, write: if true;  // DEV ONLY
 The committed [`firestore.rules`](./firestore.rules) file is a deny-all sketch — publish open rules in the Console for the demo.
 
 **Why Firebase Hosting (not Vercel)?** See [DECISIONS.md — Firebase Hosting](./DECISIONS.md#firebase-hosting--why-we-deploy-here-and-not-vercel) for the full rationale and what went wrong on Vercel (env vars, API referrers, cross-vendor debugging).
+
+**Troubleshooting:** If deploy or Firestore behaves differently than local dev, see [docs/DEBUG_LOG.md](./docs/DEBUG_LOG.md) — a chronological incident log (not runtime app logs).
+
+---
+
+## Documentation
+
+| Document | Purpose |
+|----------|---------|
+| [DECISIONS.md](./DECISIONS.md) | Architecture choices, scope capstone, design tokens, phase notes |
+| [docs/DEBUG_LOG.md](./docs/DEBUG_LOG.md) | Debug/deploy incidents — symptoms, hypotheses, root causes, fixes |
 
 ---
 

@@ -6,6 +6,20 @@ This document records **why** each technical choice was made — alternatives co
 
 ---
 
+## Time investment
+
+| Phase | Hours | Scope |
+|-------|------:|-------|
+| Setup | 1 | Zod schemas, Firestore service layer, Firebase env, project scaffold |
+| Design | 1 | Finni branding, shadcn/Radix/Nova, data-driven form field config |
+| Build | 1 | CRUD UI, live list, search/filter, detail sheet, validation |
+| Debug & deploy | 1 | Permission rules, `undefined` writes, Vercel env/referrer debugging, Firebase Hosting migration |
+| **Total** | **4** | |
+
+Full incident write-ups (symptoms, hypotheses, fixes): [docs/DEBUG_LOG.md](./docs/DEBUG_LOG.md).
+
+---
+
 ## Stack at a glance (demo summary)
 
 One-line answers for each row in the [README stack table](./README.md#stack). Full phase detail lives in the sections below.
@@ -225,6 +239,8 @@ Cross-check of codebase vs. this document:
 | `@/` path alias | [Path alias](#path-alias-) |
 | Pagination (20 per page) | Phase 5 — Polish |
 | Manual refresh button | Phase 5 — Polish |
+| Time investment table | [Time investment](#time-investment) |
+| Debug / deploy incident log | [docs/DEBUG_LOG.md](./docs/DEBUG_LOG.md) |
 
 ---
 
