@@ -236,6 +236,14 @@ export function PatientDetailSheet({
                   {formatTimestamp(patient.updatedAt)}
                 </dd>
               </div>
+              <div className="sm:col-span-2">
+                <dt className="text-sm font-medium text-muted-foreground">
+                  Last edited by
+                </dt>
+                <dd className="mt-1 text-sm text-foreground">
+                  {patient.lastEditedBy ?? "—"}
+                </dd>
+              </div>
             </dl>
           </div>
         )}

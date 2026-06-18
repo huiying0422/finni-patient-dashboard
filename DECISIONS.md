@@ -149,6 +149,25 @@ The list layer gained five UX improvements:
 
 ---
 
+## Phase 6: Compliance and documentation
+
+### Compliance touches and README
+
+We added audit-oriented metadata and documentation for a healthcare context:
+
+1. **`createdAt`, `updatedAt`, `lastEditedBy`** — timestamps are set via `serverTimestamp()` on create/update; `lastEditedBy` is written with a placeholder constant (`PLACEHOLDER_EDITOR_ID`) until Firebase Auth provides real user identity.
+2. **`firestore.rules`** — deny-by-default sketch with a commented provider-isolation rule (`providerId == request.auth.uid`). Not enforced yet because auth is parked; documents the production target.
+3. **`README.md`** — setup instructions, stack, data model, PHI handling note, and future work.
+4. **`.env.example`** — blank keys only, no secrets.
+
+**Why placeholder `lastEditedBy`:** The field exists on the schema and is written on every mutation so the audit trail shape is ready. Swapping the constant for `request.auth.uid` (or a profile id) is a one-line change once auth lands.
+
+**Why rules in-repo:** Security rules are the server-side enforcement layer for PHI. Committing a least-privilege sketch makes the production intent reviewable even while dev uses open rules.
+
+**Why README PHI section:** Reviewers and future operators need to know this is a demo posture — data minimization, no PHI in logs/LLMs, encryption defaults, and BAA requirement for real production.
+
+---
+
 ## Tooling notes
 
 - **Package manager:** npm (project ships with `package-lock.json`; prompts reference `pnpm` but commands are equivalent).

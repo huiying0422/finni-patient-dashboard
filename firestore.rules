@@ -1,0 +1,41 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Deny everything by default (least privilege).
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // -------------------------------------------------------------------------
+    // patients collection — production sketch (NOT enforced yet; auth is parked)
+    // -------------------------------------------------------------------------
+    //
+    // When Firebase Auth is enabled, replace the dev-open rules in the Firebase
+    // Console with something like:
+    //
+    // match /patients/{patientId} {
+    //   // Provider can only read/write patients assigned to them.
+    //   allow read, update, delete: if request.auth != null
+    //     && resource.data.providerId == request.auth.uid;
+    //
+    //   // New patients must be created with the caller's uid as providerId.
+    //   allow create: if request.auth != null
+    //     && request.resource.data.providerId == request.auth.uid
+    //     && request.resource.data.keys().hasAll([
+    //       'firstName', 'lastName', 'dateOfBirth', 'status', 'address',
+    //       'createdAt', 'updatedAt', 'lastEditedBy'
+    //     ]);
+    // }
+    //
+    // Notes:
+    // - providerId ties each record to a single authenticated provider.
+    // - lastEditedBy should be set server-side (Cloud Function) or validated
+    //   against request.auth.uid in rules once auth is live.
+    // - For local development, the Firebase Console may temporarily use open
+    //   rules; never ship those to production.
+    //
+    // -------------------------------------------------------------------------
+  }
+}

@@ -14,6 +14,7 @@ import {
 } from "firebase/firestore";
 
 import { db } from "@/lib/firebase";
+import { PLACEHOLDER_EDITOR_ID } from "@/lib/constants";
 import {
   patientFormSchema,
   type Patient,
@@ -103,6 +104,7 @@ export async function addPatient(values: PatientFormValues): Promise<string> {
     ...firestoreData,
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
+    lastEditedBy: PLACEHOLDER_EDITOR_ID,
   });
 
   return docRef.id;
@@ -119,6 +121,7 @@ export async function updatePatient(
   await updateDoc(doc(db, PATIENTS_COLLECTION, id), {
     ...firestoreData,
     updatedAt: serverTimestamp(),
+    lastEditedBy: PLACEHOLDER_EDITOR_ID,
   });
 }
 
