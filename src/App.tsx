@@ -1,7 +1,6 @@
 import { PatientList } from "@/components/PatientList";
 import { Toaster } from "@/components/ui/sonner";
 import {
-  FIREBASE_CONFIG_FIELDS,
   firebaseSetupMessage,
   getFirebaseEnvDiagnostics,
 } from "@/lib/firebase";
@@ -49,9 +48,9 @@ function App() {
               </p>
               <div className="text-sm text-muted-foreground space-y-2">
                 <p>
-                  Use <code className="text-xs">VITE_FIREBASE_*</code> names in
-                  Vercel (not bare <code className="text-xs">apiKey</code> /
-                  <code className="text-xs">projectId</code>):
+                  Set all six <code className="text-xs">VITE_FIREBASE_*</code>{" "}
+                  values in <code className="text-xs">.env</code> before{" "}
+                  <code className="text-xs">npm run build</code>:
                 </p>
                 <ul className="list-disc space-y-1 pl-5 font-mono text-xs">
                   {getFirebaseEnvDiagnostics().map(({ field, envKeys, status }) => (
@@ -73,9 +72,8 @@ function App() {
                   ))}
                 </ul>
                 <p>
-                  Checklist: enable <strong>Production</strong> (and Preview) for
-                  all {FIREBASE_CONFIG_FIELDS.length} variables → save →
-                  Deployments → Redeploy (required after any env change).
+                  Run <code className="text-xs">npm run deploy</code> after
+                  updating env vars.
                 </p>
               </div>
             </div>

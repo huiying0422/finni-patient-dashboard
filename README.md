@@ -76,47 +76,30 @@ allow read, write: if true;  // DEV ONLY
 | Command | Description |
 |---------|-------------|
 | `pnpm dev` | Start Vite dev server (typically `http://localhost:5173`) |
-| `pnpm build` | Type-check and production build |
+| `pnpm build` | Type-check and production build to `dist/` |
 | `pnpm preview` | Preview production build |
+| `pnpm deploy` | Build and deploy to Firebase Hosting |
 | `pnpm lint` | Run ESLint |
 
-### Deploy to Vercel
+### Deploy to Firebase Hosting
 
-This is a **Vite SPA** — Firebase runs in the browser, but **Firebase config is embedded at build time**. Vercel must have your env vars **before** the build runs.
+This is a **Vite SPA** — Firebase config is embedded at build time from your local `.env` (or shell env vars). Output goes to `dist/`, which [`firebase.json`](./firebase.json) serves.
 
-1. In [Vercel](https://vercel.com) → your project → **Settings → Environment Variables**, add all six **`VITE_FIREBASE_*`** variables below (names must start with `VITE_`). Enable them for **Production**, **Preview**, and **Development**.
-2. **Redeploy** after adding or changing any variable (Deployments → ⋯ → **Redeploy**). Saving env vars alone does not update an existing deployment — Vite bakes them in during `npm run build`.
+**Prerequisites:** [Firebase CLI](https://firebase.google.com/docs/cli) (`npm install -g firebase-tools` or use the project devDependency) and `firebase login`.
 
-| Vercel variable name | Firebase Console field |
-|----------------------|------------------------|
-| `VITE_FIREBASE_API_KEY` | `apiKey` |
-| `VITE_FIREBASE_AUTH_DOMAIN` | `authDomain` |
-| `VITE_FIREBASE_PROJECT_ID` | `projectId` |
-| `VITE_FIREBASE_STORAGE_BUCKET` | `storageBucket` |
-| `VITE_FIREBASE_MESSAGING_SENDER_ID` | `messagingSenderId` |
-| `VITE_FIREBASE_APP_ID` | `appId` |
+1. Copy `.env.example` → `.env` and fill in all six `VITE_FIREBASE_*` values from Firebase Console → Project settings → Your apps.
+2. Build locally: `npm run build` (writes to `dist/`).
+3. Deploy: `npm run deploy` (runs build + `firebase deploy --only hosting`).
 
-Copy values from Firebase Console → Project settings → Your apps → Web app. Do **not** use bare names like `apiKey` or `projectId` on Vercel — use the `VITE_FIREBASE_*` names above.
+For CI or Firebase App Hosting, set the same `VITE_FIREBASE_*` variables in the build environment before `npm run build`.
 
-3. In **Firebase Console → Project settings**, confirm the web app `projectId` matches `VITE_FIREBASE_PROJECT_ID`.
-4. **Firestore rules (required):** Firebase Console → Firestore → Rules → publish dev-open rules:
-   ```javascript
-   rules_version = '2';
-   service cloud.firestore {
-     match /databases/{database}/documents {
-       match /{document=**} {
-         allow read, write: if true;  // DEV ONLY
-       }
-     }
-   }
-   ```
-   The committed `firestore.rules` file is a deny-all sketch — the Console rules must be published separately.
-5. **API key referrers (required for Vercel):** Google Cloud Console → APIs & Services → Credentials → your browser API key → Application restrictions → HTTP referrers → add:
-   - `https://*.vercel.app/*`
-   - `http://localhost:*` (for local dev)
-6. After deploy, the patient list footer shows `Firebase: your-project-id` — confirm it matches your Firebase project.
+**Firestore rules (required for CRUD):** Firebase Console → Firestore → Rules → publish dev-open rules:
 
-If env vars are missing at build time, the Vercel **build fails** with a clear error. If the build succeeds but the list is empty or times out, check steps 4–5 above.
+```javascript
+allow read, write: if true;  // DEV ONLY
+```
+
+The committed [`firestore.rules`](./firestore.rules) file is a deny-all sketch — publish open rules in the Console for the demo.
 
 ---
 

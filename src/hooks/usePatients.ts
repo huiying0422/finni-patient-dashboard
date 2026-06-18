@@ -4,7 +4,7 @@
  * Wraps the Firestore onSnapshot subscription with loading and error state so
  * views can render skeletons, empty states, or error messages consistently.
  */
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 import { firebaseConfig } from "@/lib/firebase";
 import { subscribePatients } from "@/services/patients";
@@ -16,6 +16,13 @@ export function usePatients() {
   const [patients, setPatients] = useState<Patient[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [refreshKey, setRefreshKey] = useState(0);
+
+  const refresh = useCallback(() => {
+    setLoading(true);
+    setError(null);
+    setRefreshKey((current) => current + 1);
+  }, []);
 
   useEffect(() => {
     let settled = false;
@@ -25,7 +32,7 @@ export function usePatients() {
       setLoading(false);
       setError(
         `Timed out loading patients from Firebase (${firebaseConfig.projectId}). ` +
-          "Check Firestore rules, API key HTTP referrer (allow https://*.vercel.app/*), and redeploy.",
+          "Check Firestore rules and redeploy.",
       );
     }, LOAD_TIMEOUT_MS);
 
@@ -51,7 +58,13 @@ export function usePatients() {
       window.clearTimeout(timeoutId);
       unsubscribe();
     };
-  }, []);
+  }, [refreshKey]);
 
-  return { patients, loading, error, projectId: firebaseConfig.projectId };
+  return {
+    patients,
+    loading,
+    error,
+    projectId: firebaseConfig.projectId,
+    refresh,
+  };
 }

@@ -1,14 +1,14 @@
 /**
- * Main patient list view — search, status filtering, and entry point to detail.
+ * Main patient list view — search, status filtering, pagination, and detail entry.
  *
  * Reads live data from usePatients and derives filtered results in memory so
  * the underlying Firestore list is never mutated by UI filters.
  */
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { RefreshCw } from "lucide-react";
 
 import { AddPatientDialog } from "@/components/AddPatientDialog";
 import { PatientDetailSheet } from "@/components/PatientDetailSheet";
-import { SeedTestDataButton } from "@/components/SeedTestDataButton";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -37,6 +37,8 @@ import {
 } from "@/lib/patientFormat";
 import type { Patient } from "@/lib/types";
 
+const PAGE_SIZE = 20;
+
 type StatusFilter = "All" | PatientStatus;
 
 const STATUS_FILTERS: StatusFilter[] = [
@@ -54,7 +56,6 @@ function filterPatients(
 ): Patient[] {
   const normalizedQuery = searchQuery.trim().toLowerCase();
 
-  // Pure filter — returns a new array; the source list from Firestore stays untouched.
   return patients.filter((patient) => {
     if (statusFilter !== "All" && patient.status !== statusFilter) {
       return false;
@@ -124,9 +125,10 @@ function PatientCard({
 }
 
 export function PatientList() {
-  const { patients, loading, error, projectId } = usePatients();
+  const { patients, loading, error, projectId, refresh } = usePatients();
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("All");
+  const [page, setPage] = useState(1);
   const [selectedPatientId, setSelectedPatientId] = useState<string | null>(
     null,
   );
@@ -137,12 +139,35 @@ export function PatientList() {
     [patients, searchQuery, statusFilter],
   );
 
-  // Resolve selection from the live list so edits/deletes reflected by onSnapshot stay in sync.
+  const totalPages = Math.max(
+    1,
+    Math.ceil(filteredPatients.length / PAGE_SIZE),
+  );
+
+  const paginatedPatients = useMemo(() => {
+    const start = (page - 1) * PAGE_SIZE;
+    return filteredPatients.slice(start, start + PAGE_SIZE);
+  }, [filteredPatients, page]);
+
   const selectedPatient =
     patients.find((patient) => patient.id === selectedPatientId) ?? null;
 
   const hasActiveFilters =
     searchQuery.trim().length > 0 || statusFilter !== "All";
+
+  const rangeStart =
+    filteredPatients.length === 0 ? 0 : (page - 1) * PAGE_SIZE + 1;
+  const rangeEnd = Math.min(page * PAGE_SIZE, filteredPatients.length);
+
+  useEffect(() => {
+    setPage(1);
+  }, [searchQuery, statusFilter]);
+
+  useEffect(() => {
+    if (page > totalPages) {
+      setPage(totalPages);
+    }
+  }, [page, totalPages]);
 
   function openPatientDetail(patient: Patient) {
     setSelectedPatientId(patient.id);
@@ -159,10 +184,21 @@ export function PatientList() {
               Manage patient records across the care lifecycle.
             </CardDescription>
           </div>
-          <div className="flex flex-col items-stretch gap-2 sm:items-end">
+          <div className="flex flex-wrap items-center gap-2 sm:justify-end">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={refresh}
+              disabled={loading}
+              aria-label="Refresh patient list"
+            >
+              <RefreshCw
+                className={`mr-2 size-4 ${loading ? "animate-spin" : ""}`}
+              />
+              Refresh
+            </Button>
             <AddPatientDialog />
-            {/* TEMPORARY — remove SeedTestDataButton import and usage when demo seeding is done. */}
-            <SeedTestDataButton />
           </div>
         </CardHeader>
 
@@ -222,11 +258,10 @@ export function PatientList() {
             </div>
           )}
 
-          {!loading && !error && filteredPatients.length > 0 && (
+          {!loading && !error && paginatedPatients.length > 0 && (
             <>
-              {/* Cards on small screens; table on md+ — same data, different density. */}
               <div className="space-y-3 md:hidden">
-                {filteredPatients.map((patient) => (
+                {paginatedPatients.map((patient) => (
                   <PatientCard
                     key={patient.id}
                     patient={patient}
@@ -246,7 +281,7 @@ export function PatientList() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {filteredPatients.map((patient) => (
+                    {paginatedPatients.map((patient) => (
                       <TableRow
                         key={patient.id}
                         className="cursor-pointer"
@@ -272,12 +307,44 @@ export function PatientList() {
             </>
           )}
 
+          {!loading && !error && filteredPatients.length > PAGE_SIZE && (
+            <div className="flex flex-col items-center justify-between gap-3 sm:flex-row">
+              <p className="text-sm text-muted-foreground">
+                Page {page} of {totalPages}
+              </p>
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  disabled={page <= 1}
+                  onClick={() => setPage((current) => current - 1)}
+                >
+                  Previous
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  disabled={page >= totalPages}
+                  onClick={() => setPage((current) => current + 1)}
+                >
+                  Next
+                </Button>
+              </div>
+            </div>
+          )}
+
           {!loading && !error && patients.length > 0 && (
             <p className="text-sm text-muted-foreground">
-              Showing {filteredPatients.length} of {patients.length} patients
+              Showing {rangeStart}–{rangeEnd} of {filteredPatients.length}{" "}
+              patients
               {hasActiveFilters ? " (filtered)" : ""}
+              {patients.length !== filteredPatients.length
+                ? ` · ${patients.length} total`
+                : ""}
               {" · "}
-              <span className="font-mono text-xs">Firebase: {projectId}</span>
+              <span className="font-mono text-xs">{PAGE_SIZE} per page</span>
             </p>
           )}
 
