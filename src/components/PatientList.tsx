@@ -1,4 +1,7 @@
+import { useState } from "react";
+
 import { AddPatientDialog } from "@/components/AddPatientDialog";
+import { PatientDetailSheet } from "@/components/PatientDetailSheet";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -77,78 +80,108 @@ function LoadingSkeleton() {
 
 export function PatientList() {
   const { patients, loading, error, refresh } = usePatients();
+  const [selectedPatientId, setSelectedPatientId] = useState<string | null>(
+    null,
+  );
+  const [sheetOpen, setSheetOpen] = useState(false);
+
+  const selectedPatient =
+    patients.find((patient) => patient.id === selectedPatientId) ?? null;
+
+  function openPatientDetail(patient: Patient) {
+    setSelectedPatientId(patient.id);
+    setSheetOpen(true);
+  }
+
+  async function handleRefresh() {
+    await refresh();
+  }
 
   return (
-    <Card className="mx-auto w-full max-w-5xl">
-      <CardHeader className="flex flex-row items-start justify-between gap-4">
-        <div>
-          <CardTitle>Patients</CardTitle>
-          <CardDescription>
-            Manage patient records across the care lifecycle.
-          </CardDescription>
-        </div>
-        <div className="flex items-center gap-2">
-          <AddPatientDialog onPatientAdded={refresh} />
-          <Button variant="outline" size="sm" onClick={() => void refresh()}>
-            Refresh
-          </Button>
-        </div>
-      </CardHeader>
-      <CardContent>
-        {loading && <LoadingSkeleton />}
-
-        {!loading && error && (
-          <div className="flex flex-col items-start gap-3 rounded-2xl border border-destructive/30 bg-destructive/5 p-6">
-            <p className="font-medium text-destructive">
-              Could not load patients
-            </p>
-            <p className="text-sm text-muted-foreground">{error}</p>
-            <Button variant="outline" size="sm" onClick={() => void refresh()}>
-              Try again
+    <>
+      <Card className="mx-auto w-full max-w-5xl">
+        <CardHeader className="flex flex-row items-start justify-between gap-4">
+          <div>
+            <CardTitle>Patients</CardTitle>
+            <CardDescription>
+              Manage patient records across the care lifecycle.
+            </CardDescription>
+          </div>
+          <div className="flex items-center gap-2">
+            <AddPatientDialog onPatientAdded={handleRefresh} />
+            <Button variant="outline" size="sm" onClick={() => void handleRefresh()}>
+              Refresh
             </Button>
           </div>
-        )}
+        </CardHeader>
+        <CardContent>
+          {loading && <LoadingSkeleton />}
 
-        {!loading && !error && patients.length === 0 && (
-          <div className="rounded-2xl border border-dashed border-border bg-muted/40 p-10 text-center">
-            <p className="font-medium text-foreground">No patients yet</p>
-            <p className="mt-2 text-sm text-muted-foreground">
-              Add a patient to see them listed here.
-            </p>
-          </div>
-        )}
+          {!loading && error && (
+            <div className="flex flex-col items-start gap-3 rounded-2xl border border-destructive/30 bg-destructive/5 p-6">
+              <p className="font-medium text-destructive">
+                Could not load patients
+              </p>
+              <p className="text-sm text-muted-foreground">{error}</p>
+              <Button variant="outline" size="sm" onClick={() => void handleRefresh()}>
+                Try again
+              </Button>
+            </div>
+          )}
 
-        {!loading && !error && patients.length > 0 && (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Name</TableHead>
-                <TableHead>Date of birth</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Location</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {patients.map((patient) => (
-                <TableRow key={patient.id}>
-                  <TableCell className="font-medium">
-                    {formatFullName(patient)}
-                  </TableCell>
-                  <TableCell>
-                    {formatDateOfBirth(patient.dateOfBirth)}
-                  </TableCell>
-                  <TableCell>
-                    <StatusBadge status={patient.status} />
-                  </TableCell>
-                  <TableCell className="text-muted-foreground">
-                    {patient.address.city}, {patient.address.state}
-                  </TableCell>
+          {!loading && !error && patients.length === 0 && (
+            <div className="rounded-2xl border border-dashed border-border bg-muted/40 p-10 text-center">
+              <p className="font-medium text-foreground">No patients yet</p>
+              <p className="mt-2 text-sm text-muted-foreground">
+                Add a patient to see them listed here.
+              </p>
+            </div>
+          )}
+
+          {!loading && !error && patients.length > 0 && (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Name</TableHead>
+                  <TableHead>Date of birth</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Location</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        )}
-      </CardContent>
-    </Card>
+              </TableHeader>
+              <TableBody>
+                {patients.map((patient) => (
+                  <TableRow
+                    key={patient.id}
+                    className="cursor-pointer"
+                    onClick={() => openPatientDetail(patient)}
+                  >
+                    <TableCell className="font-medium">
+                      {formatFullName(patient)}
+                    </TableCell>
+                    <TableCell>
+                      {formatDateOfBirth(patient.dateOfBirth)}
+                    </TableCell>
+                    <TableCell>
+                      <StatusBadge status={patient.status} />
+                    </TableCell>
+                    <TableCell className="text-muted-foreground">
+                      {patient.address.city}, {patient.address.state}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
+        </CardContent>
+      </Card>
+
+      <PatientDetailSheet
+        patient={selectedPatient}
+        open={sheetOpen}
+        onOpenChange={setSheetOpen}
+        onUpdated={handleRefresh}
+        onDeleted={handleRefresh}
+      />
+    </>
   );
 }

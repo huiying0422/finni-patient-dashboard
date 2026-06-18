@@ -20,6 +20,27 @@ import {
 
 const PATIENTS_COLLECTION = "patients";
 
+/** Firestore rejects undefined field values — omit them before write. */
+function omitUndefined<T>(value: T): T {
+  if (value === undefined) {
+    return value;
+  }
+
+  if (Array.isArray(value)) {
+    return value.map((item) => omitUndefined(item)) as T;
+  }
+
+  if (value !== null && typeof value === "object") {
+    return Object.fromEntries(
+      Object.entries(value)
+        .filter(([, entryValue]) => entryValue !== undefined)
+        .map(([key, entryValue]) => [key, omitUndefined(entryValue)]),
+    ) as T;
+  }
+
+  return value;
+}
+
 /** Map a Firestore document snapshot to a typed Patient. */
 function toPatient(id: string, data: Record<string, unknown>): Patient {
   return { id, ...data } as Patient;
@@ -50,9 +71,10 @@ export async function getPatient(id: string): Promise<Patient | null> {
 /** Validate and create a new patient; returns the new document id. */
 export async function addPatient(values: PatientFormValues): Promise<string> {
   const validated = patientFormSchema.parse(values);
+  const firestoreData = omitUndefined(validated);
 
   const docRef = await addDoc(collection(db, PATIENTS_COLLECTION), {
-    ...validated,
+    ...firestoreData,
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
   });
@@ -66,9 +88,10 @@ export async function updatePatient(
   values: PatientFormValues,
 ): Promise<void> {
   const validated = patientFormSchema.parse(values);
+  const firestoreData = omitUndefined(validated);
 
   await updateDoc(doc(db, PATIENTS_COLLECTION, id), {
-    ...validated,
+    ...firestoreData,
     updatedAt: serverTimestamp(),
   });
 }

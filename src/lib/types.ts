@@ -4,15 +4,40 @@ import { z } from "zod";
 /** US ZIP code: 5 digits, optional plus-4 extension (e.g. 12345 or 12345-6789). */
 const US_ZIP_REGEX = /^\d{5}(-\d{4})?$/;
 
+/** US state code: exactly two letters. */
+const US_STATE_REGEX = /^[A-Z]{2}$/;
+
+/** Trim and require a non-empty string. */
+const trimmedRequired = (message: string) =>
+  z.string().trim().min(1, message);
+
+/** Trim optional strings; empty strings become undefined. */
+const trimmedOptional = () =>
+  z
+    .string()
+    .trim()
+    .transform((value) => (value === "" ? undefined : value))
+    .optional();
+
 /**
  * Address fields required when creating or editing a patient.
+ * line2 is optional (apartment, suite, or unit).
  */
 export const addressSchema = z.object({
-  street: z.string().min(1, "Street address is required"),
-  city: z.string().min(1, "City is required"),
-  state: z.string().min(1, "State is required"),
+  street: trimmedRequired("Street address is required"),
+  line2: trimmedOptional(),
+  city: trimmedRequired("City is required"),
+  state: z
+    .string()
+    .trim()
+    .min(1, "State is required")
+    .transform((value) => value.toUpperCase())
+    .pipe(
+      z.string().regex(US_STATE_REGEX, "Enter a valid 2-letter state code"),
+    ),
   zip: z
     .string()
+    .trim()
     .min(1, "ZIP code is required")
     .regex(
       US_ZIP_REGEX,
@@ -22,13 +47,15 @@ export const addressSchema = z.object({
 
 /**
  * Form values for creating or updating a patient record.
+ * middleName and address.line2 are the only optional fields.
  */
 export const patientFormSchema = z.object({
-  firstName: z.string().min(1, "First name is required"),
-  middleName: z.string().optional(),
-  lastName: z.string().min(1, "Last name is required"),
+  firstName: trimmedRequired("First name is required"),
+  middleName: trimmedOptional(),
+  lastName: trimmedRequired("Last name is required"),
   dateOfBirth: z
     .string()
+    .trim()
     .min(1, "Date of birth is required")
     .refine((value) => !Number.isNaN(Date.parse(value)), {
       message: "Enter a valid date of birth",

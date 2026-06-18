@@ -20,6 +20,7 @@ import { patientFormSchema, type PatientFormValues } from "@/lib/types";
 
 type PatientFormProps = {
   formId?: string;
+  defaultValues?: PatientFormValues;
   onSubmit: (values: PatientFormValues) => void | Promise<void>;
   onCancel?: () => void;
   submitLabel?: string;
@@ -95,6 +96,8 @@ function FieldControl({
       id={fieldId}
       type={field.inputType}
       aria-invalid={!!error}
+      autoComplete={field.autoComplete}
+      maxLength={field.key === "address.state" ? 2 : undefined}
       {...register(field.key as keyof PatientFormValues & string)}
     />
   );
@@ -102,6 +105,7 @@ function FieldControl({
 
 export function PatientForm({
   formId = "patient-form",
+  defaultValues = defaultPatientFormValues,
   onSubmit,
   onCancel,
   submitLabel = "Save patient",
@@ -114,7 +118,7 @@ export function PatientForm({
     formState: { errors },
   } = useForm<PatientFormValues>({
     resolver: zodResolver(patientFormSchema),
-    defaultValues: defaultPatientFormValues,
+    defaultValues,
   });
 
   return (
@@ -132,7 +136,11 @@ export function PatientForm({
           return (
             <div
               key={field.key}
-              className={field.key === "address.street" ? "sm:col-span-2" : ""}
+              className={
+                field.key === "address.street" || field.key === "address.line2"
+                  ? "sm:col-span-2"
+                  : ""
+              }
             >
               <Label htmlFor={fieldId}>
                 {field.label}

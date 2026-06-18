@@ -97,6 +97,34 @@ The add-patient flow is built from three pieces:
 
 **Why dialog in list header:** The add action lives where users manage the patient list, and `onPatientAdded` calls `refresh` from `usePatients` so new records appear immediately without a page reload.
 
+### Address: optional line 2, browser autofill, normalization, third-party verification parked for PHI/BAA reasons
+
+We extended the address model with an optional **`line2`** field (apartment, suite, or unit) alongside required street, city, state, and ZIP. **`middleName`** and **`address.line2`** are the only optional fields on the patient form; everything else is required.
+
+**Normalization (Zod transforms, no third-party API):** All string fields are trimmed on submit. State codes are uppercased and validated as exactly two letters. ZIP remains US-format validated. This keeps Firestore data clean without an external geocoding or verification service.
+
+**Browser autofill:** Each address and name field in `patientFields` carries an `autoComplete` token (`given-name`, `address-line1`, `address-line2`, `address-level1`, etc.) passed through to inputs so browsers can offer saved-address autofill — zero dependencies.
+
+**Third-party verification parked:** Services like Google Address Validation or SmartyStreets could standardize addresses further, but they introduce PHI handling and BAA requirements. For this take-home we rely on schema validation + normalization instead.
+
+### Firestore writes omit undefined optional fields
+
+Zod normalization turns empty optional fields (`middleName`, `address.line2`) into `undefined`. Firestore rejects documents containing `undefined` values, so `omitUndefined()` in the service layer strips those keys before `addDoc` / `updateDoc`.
+
+**Why:** Optional form fields should simply be absent from stored documents, not saved as `undefined`. This keeps the schema normalization without breaking Firestore writes.
+
+---
+
+## Phase 4: Detail, edit, and delete
+
+### Detail, edit, delete: one reused form
+
+Each patient row opens a **shadcn Sheet** showing all fields plus `createdAt` and `updatedAt`. Edit mode reuses the same **`PatientForm`** component from add flow, pre-filled via `patientToFormValues()`. Save calls `updatePatient` and refreshes the list; delete is guarded by an **AlertDialog** confirm before calling `deletePatient`.
+
+**Why reuse the form:** Add and edit share identical fields, validation rules, and input types. One `PatientForm` mapped from `patientFields` means validation or UI changes apply to both flows automatically — no duplicated markup or diverging Zod rules.
+
+**Why confirm destructive actions:** Deleting a patient is irreversible. An AlertDialog forces an explicit confirmation step so accidental clicks on "Delete patient" cannot silently remove records.
+
 ---
 
 ## Tooling notes
