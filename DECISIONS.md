@@ -149,6 +149,26 @@ Layout cues from the marketing site: **pill buttons** (`rounded-full`), **~16px 
 
 **Rationale:** Public stylesheets give exact hex and font names reproducibly; CSS variables keep components token-driven; manual filtering removes platform noise that automated extraction cannot distinguish from brand.
 
+### Brand logo assets
+
+Finni’s public Webflow CDN hosts the brand files used in this dashboard:
+
+| Asset | Source URL | Usage |
+|-------|------------|-------|
+| Fox icon (`public/finni-fox.png`) | `logo512.png` on their CDN | Favicon and header mascot |
+| Wordmark (`public/finni-logo.svg`) | `Logo.svg` in site nav | Header wordmark |
+
+**How to find them yourself:**
+
+```bash
+# List image URLs from the marketing homepage
+curl -sL "https://www.finnihealth.com" \
+  | grep -oiE 'https://[^"'\'' ]+\.(svg|png|webp)' \
+  | sort -u
+```
+
+The nav `<img>` tag points at `Logo.svg`; the favicon / apple-touch icon uses `logo512.png` (fox mascot).
+
 ---
 
 ## Documentation audit index (Phase 8)

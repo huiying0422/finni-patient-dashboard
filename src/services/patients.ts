@@ -16,8 +16,8 @@ import {
   type Unsubscribe,
 } from "firebase/firestore";
 
-import { db } from "@/lib/firebase";
 import { PLACEHOLDER_EDITOR_ID } from "@/lib/constants";
+import { firebaseSetupMessage, requireDb } from "@/lib/firebase";
 import {
   patientFormSchema,
   type Patient,
@@ -57,8 +57,14 @@ export function subscribePatients(
   onPatients: (patients: Patient[]) => void,
   onError: (error: Error) => void,
 ): Unsubscribe {
+  if (firebaseSetupMessage) {
+    onError(new Error(firebaseSetupMessage));
+    return () => {};
+  }
+
+  const firestore = requireDb();
   const patientsQuery = query(
-    collection(db, PATIENTS_COLLECTION),
+    collection(firestore, PATIENTS_COLLECTION),
     orderBy("createdAt", "desc"),
   );
 
@@ -78,11 +84,10 @@ export function subscribePatients(
 
 /** Validate and create a new patient; returns the new document id. */
 export async function addPatient(values: PatientFormValues): Promise<string> {
-  // Re-validate at the trust boundary — never assume the caller already ran Zod.
   const validated = patientFormSchema.parse(values);
   const firestoreData = omitUndefined(validated);
 
-  const docRef = await addDoc(collection(db, PATIENTS_COLLECTION), {
+  const docRef = await addDoc(collection(requireDb(), PATIENTS_COLLECTION), {
     ...firestoreData,
     // Audit fields are set here, not in the form — providers cannot forge create/edit history.
     createdAt: serverTimestamp(),
@@ -101,7 +106,7 @@ export async function updatePatient(
   const validated = patientFormSchema.parse(values);
   const firestoreData = omitUndefined(validated);
 
-  await updateDoc(doc(db, PATIENTS_COLLECTION, id), {
+  await updateDoc(doc(requireDb(), PATIENTS_COLLECTION, id), {
     ...firestoreData,
     // serverTimestamp() ensures the edit time is authoritative, not client clock.
     updatedAt: serverTimestamp(),
@@ -111,5 +116,5 @@ export async function updatePatient(
 
 /** Delete a patient by id. */
 export async function deletePatient(id: string): Promise<void> {
-  await deleteDoc(doc(db, PATIENTS_COLLECTION, id));
+  await deleteDoc(doc(requireDb(), PATIENTS_COLLECTION, id));
 }

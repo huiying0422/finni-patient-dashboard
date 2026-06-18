@@ -80,6 +80,18 @@ allow read, write: if true;  // DEV ONLY
 | `pnpm preview` | Preview production build |
 | `pnpm lint` | Run ESLint |
 
+### Deploy to Vercel
+
+This is a **Vite SPA** — Firebase runs in the browser, but **Firebase config is embedded at build time**. Vercel must have your env vars **before** the build runs.
+
+1. In [Vercel](https://vercel.com) → your project → **Settings → Environment Variables**, add all six `VITE_FIREBASE_*` variables (same values as local `.env`). Enable them for **Production**, **Preview**, and **Development**.
+2. **Redeploy** after adding or changing any variable (Deployments → ⋯ → **Redeploy**). A env change alone does not update an old build.
+3. In **Firebase Console → Project settings**, confirm the web app `projectId` matches `VITE_FIREBASE_PROJECT_ID`.
+4. If your Google Cloud **API key** has HTTP referrer restrictions, allow your Vercel domain (e.g. `https://*.vercel.app/*`).
+5. Firestore **rules** must allow read/write for testing (see above).
+
+If env vars are missing at build time, the app shows a **Firebase not configured** banner and CRUD will fail immediately instead of hanging on “Saving…”.
+
 ---
 
 ## Data model
