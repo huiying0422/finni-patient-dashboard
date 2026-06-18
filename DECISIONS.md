@@ -2,42 +2,152 @@
 
 This document records **why** each technical choice was made — alternatives considered, rationale, and scope boundaries. For project overview, design principles, setup, data model, and module map, see [README.md](./README.md).
 
-Entries added during the documentation audit use an explicit **Decision → Alternatives → Rationale** format. Earlier entries retain their original prose; all are listed in the audit index below.
+**Presenting live?** Start with [Stack at a glance](#stack-at-a-glance-demo-summary), then [Scope capstone](#scope-and-future-work-capstone), then [Design token extraction](#design-token-extraction-finni-health-branding) if asked about UI/UX.
+
+---
+
+## Stack at a glance (demo summary)
+
+One-line answers for each row in the [README stack table](./README.md#stack). Full phase detail lives in the sections below.
+
+| Layer | Choice | Alternatives | Why this one (say this) |
+|-------|--------|--------------|-------------------------|
+| **UI** | React 19 + TypeScript + Vite | Next.js, CRA, plain JS | Fast dev server, static deploy, strict types — no SSR needed for a Firebase SPA dashboard. |
+| **Components** | shadcn/ui + Radix (Nova preset) | MUI, Chakra, headless-only | Accessible Radix primitives, components live in our repo (no black box), Nova is a clean baseline we theme to Finni. |
+| **Styling** | Tailwind CSS v4 + CSS variables | CSS Modules, styled-components | Pairs with shadcn; tokens in `src/index.css` keep brand colors global without scattered hex values. |
+| **Forms** | React Hook Form + Zod | Formik, Yup-only, native forms | RHF handles form state; `zodResolver` shares the **same schema** the service layer uses before Firestore writes. |
+| **Database** | Firebase Firestore (modular SDK) | Supabase, REST + Postgres, mock API | Real-time `onSnapshot` for live lists; env-based config; `firestore.rules` sketch ready for auth scoping. |
+| **Toasts** | Sonner | react-hot-toast, react-toastify | Lightweight pop-up feedback after create/update/delete — confirms success or surfaces server errors without blocking the UI. |
+
+### Sonner (Toasts) — what it is
+
+**Toasts** are small, temporary notifications (top-right) that confirm an action or show an error. **Sonner** is the library; we mount one `<Toaster />` in `App.tsx` and call `toast.success()` / `toast.error()` from add, edit, and delete flows. Inline form errors stay on the form; toasts handle post-save feedback.
+
+**Decision:** Use Sonner for CRUD feedback.
+
+**Alternatives considered:** react-hot-toast, react-toastify, browser `alert()`, inline-only messages.
+
+**Rationale:** Sonner has a minimal API, works well with shadcn styling, and keeps validation errors separate from operational confirmations — a common dashboard pattern.
+
+### Firebase Firestore — why not something else
+
+**Decision:** Firestore as the sole backend, accessed only through `src/services/patients.ts`.
+
+**Alternatives considered:** Supabase Postgres, a custom REST API, in-memory mock data.
+
+**Rationale:** Firestore gives real-time listeners out of the box (no manual refresh after writes), Firebase Console is quick to stand up for a take-home, and security rules provide a credible path to provider-scoped access in production.
+
+### React Hook Form + Zod — why together
+
+**Decision:** RHF for form state; Zod for validation via `zodResolver(patientFormSchema)` in the UI and `patientFormSchema.parse()` in the service.
+
+**Alternatives considered:** Formik, separate TypeScript interfaces without runtime checks, UI-only validation.
+
+**Rationale:** One Zod schema drives TypeScript types (`z.infer`), inline form errors, and the trust boundary before any write — rules cannot drift between UI and database.
 
 ---
 
 ## Scope and future work capstone
 
-Delivered scope and parked features. The [README Future work](./README.md#future-work) section frames these as incremental extensions; this section records scope boundaries and per-feature notes.
+Use this section as your **scope script** in a live demo: what shipped, what we deliberately skipped, and why the architecture still supports adding the rest later.
 
-### In scope (delivered)
+### What we shipped (demo these)
 
-- Provider-facing patient dashboard with full CRUD
-- Typed Zod data model and Firestore service layer
-- Data-driven add/edit form with address normalization and browser autofill
-- Live list via Firestore `onSnapshot`
-- Search, status filter, responsive layout, and Sonner toasts
-- Compliance metadata (`createdAt`, `updatedAt`, `lastEditedBy` placeholder)
-- Deny-by-default `firestore.rules` sketch with commented provider isolation
-- Finni Health theming (Outfit font, brand palette)
+| Capability | One-line demo line |
+|------------|-------------------|
+| Full CRUD | Add, view, edit, and delete patients with validation at every step. |
+| Live list | Firestore `onSnapshot` — list updates automatically, no refresh button. |
+| Search + filter | Client-side derived state; source data never mutated. |
+| Data-driven form | New fields = config in `patientFields.ts` + schema entry, not a form rewrite. |
+| Service layer | Components never touch Firebase directly; Zod runs before every write. |
+| Compliance hooks | `createdAt`, `updatedAt`, `lastEditedBy`; deny-by-default rules sketch in-repo. |
+| Finni branding | Tokens extracted from public CSS (see [Design token extraction](#design-token-extraction-finni-health-branding)). |
 
-### Parked features (not implemented)
+**Scope discipline (say this):** We shipped a complete provider CRUD workflow first. Auth, billing, intake portals, and third-party address APIs are parked — not forgotten — because the layered architecture lets them land incrementally without rewriting what works.
 
-| Feature | Notes |
-|---------|-------|
-| **Provider auth and multi-tenant isolation** | Firebase Auth; `providerId` scoping per `firestore.rules` sketch |
-| **Full audit logging** | Append-only change history beyond `lastEditedBy` / `updatedAt` |
-| **BAA-backed address verification via server proxy** | Third-party validation (SmartyStreets, Google) routed through a backend proxy so PHI never hits client-only APIs |
-| **Family caregiver intake portal** | Separate portal for caregivers to submit or update patient info |
-| **Configurable intake questionnaires** | Dynamic pre-visit forms linked to patient records |
-| **E-signature and consent** | Capture signed consent documents with audit trail |
-| **Reminder emails and texts** | Automated outreach (appointments, onboarding steps) |
-| **Scheduling and visit history** | Calendar integration and visit log per patient |
-| **Insurance capture and billing** | Payer info, eligibility, and billing workflow |
-| **Status change history** | Timeline of lifecycle transitions (who moved Inquiry → Active, when) |
-| **Internationalized address** | Non-US formats, country-aware validation, i18n labels |
-| **Seed utility** | Scripted demo/development data loader (currently manual entry via UI) |
-| **Role-based access** | Admin vs. provider vs. read-only views |
+### Parked features — what to say when asked
+
+Each item below is **intentionally out of MVP scope**. The third column is your answer to “could you add that?”
+
+| Feature | Why parked now | How the architecture supports it later |
+|---------|----------------|----------------------------------------|
+| **Provider auth + multi-tenant isolation** | No Firebase Auth in take-home; dev uses open rules | `providerId` field + commented rule in `firestore.rules`; swap `PLACEHOLDER_EDITOR_ID` for `request.auth.uid` |
+| **Full audit logging** | MVP writes `lastEditedBy` + timestamps only | Service layer is the single write path — append-only log collection hooks in `patients.ts` |
+| **BAA-backed address verification** | Third-party APIs need PHI review and a server proxy | Validation already in Zod; proxy endpoint replaces normalization-only path |
+| **Family caregiver intake portal** | Separate product surface | Same `patientFormSchema` + service layer; new route and auth role |
+| **Configurable intake questionnaires** | Dynamic forms are a large scope item | Data-driven `patientFields` pattern extends to questionnaire config |
+| **E-signature and consent** | Legal workflow + storage | Patient record + audit metadata already exist; new collection + UI |
+| **Reminder emails and texts** | Requires messaging infra + consent | Patient contact fields and status enum ready for trigger rules |
+| **Scheduling and visit history** | Calendar is its own domain | Patient `id` as foreign key; new subcollection under patient |
+| **Insurance capture and billing** | Payer data expands PHI surface | Schema extension + service validation; no refactor of list/form shell |
+| **Status change history** | MVP shows current status only | Status enum + `updatedAt`/`lastEditedBy`; append transition log on `updatePatient` |
+| **Internationalized address** | US-only validation for MVP | `addressSchema` is isolated; swap or extend without touching form mapper |
+| **Seed utility** | Manual/demo seeding sufficient for review | Temporary button + `seedPatients()` calls same `addPatient` path |
+| **Role-based access** | Depends on auth | Rules sketch + `lastEditedBy`; UI gates by role once Auth lands |
+
+For the README’s incremental-framing summary, see [Future work](./README.md#future-work).
+
+---
+
+## Design token extraction (Finni Health branding)
+
+How Finni’s visual identity was mapped into this dashboard **using public CSS sources only** — no brand kit provided.
+
+### Step 1 — Confirm the font
+
+Finni’s marketing site loads **Outfit** from Google Fonts (weights 300–700). The font family name in the stylesheet URL is the ground truth:
+
+```bash
+curl -s "https://fonts.googleapis.com/css?family=Outfit:300,400,500,600,700" | head -c 300
+```
+
+We set `--font-sans: "Outfit", sans-serif` in `src/index.css` and load the font in `index.html`.
+
+### Step 2 — Extract colors from the Webflow stylesheet
+
+Finni’s public marketing site runs on **Webflow**. Its shared CSS file contains every hex the site actually uses:
+
+```bash
+curl -s "https://cdn.prod.website-files.com/6297d5d89ac9c5b4308579e1/css/finnihealth.webflow.shared.5f902c756.css" \
+  | grep -oE '#[0-9a-fA-F]{6}' \
+  | sort | uniq -c | sort -rn | head -20
+```
+
+Sort by frequency to see which colors dominate — e.g. `#B7A692` (warm taupe borders) appears more often than accent oranges, so it belongs in the token set as a brand neutral, not an afterthought.
+
+To also catch `rgba()` values:
+
+```bash
+curl -s "https://cdn.prod.website-files.com/6297d5d89ac9c5b4308579e1/css/finnihealth.webflow.shared.5f902c756.css" \
+  | grep -oiE '#[0-9a-f]{3,6}|rgba?\([0-9, .]+\)' \
+  | sort | uniq -c | sort -rn | head -30
+```
+
+### Step 3 — Filter platform noise
+
+Raw CSS extraction includes **framework defaults**, not just brand choices. Example: `#3898EC` is Webflow’s default accent blue — it appears in the dump but not in Finni’s visible brand language. **Judgment step:** keep colors that match the marketing site’s look; drop boilerplate.
+
+### Step 4 — Map to dashboard tokens
+
+Reconciled hex values were mapped to shadcn CSS variables in `src/index.css`:
+
+| Token | Hex | Role |
+|-------|-----|------|
+| Primary | `#ED762F` | Buttons, accents |
+| Background | `#FBF7F0` | Page background |
+| Card | `#FFFFFF` | Card surfaces |
+| Foreground | `#141414` | Body text |
+| Muted foreground | `#758696` | Secondary text |
+| Border / input | `#B7A692` | Borders, inputs |
+| Secondary / accent | `#D1BCE7` | Soft purple surfaces |
+
+Layout cues from the marketing site: **pill buttons** (`rounded-full`), **~16px card radius** (`--radius: 1rem`). Status badge colors in `src/lib/patientFormat.ts` use the same palette with contrast tuned per lifecycle stage.
+
+**Decision:** Extract tokens from public Webflow CSS + Google Fonts; implement as CSS variables.
+
+**Alternatives considered:** DevTools eyedropper per element; generic health-tech palette; hardcoded hex in components.
+
+**Rationale:** Public stylesheets give exact hex and font names reproducibly; CSS variables keep components token-driven; manual filtering removes platform noise that automated extraction cannot distinguish from brand.
 
 ---
 
@@ -55,7 +165,7 @@ Cross-check of codebase vs. this document:
 | Firestore service layer (`patients.ts`) | Phase 1 — Dedicated Firestore service layer |
 | Firebase env config | Phase 1 — Firebase config via environment variables |
 | Firestore dev rules posture | Phase 1 — Firestore security rules for development |
-| Finni theming (Outfit, tokens) | Phase 2 — Design tokens and theming |
+| Finni theming (Outfit, tokens) | [Design token extraction](#design-token-extraction-finni-health-branding) |
 | `usePatients` hook + explicit UI states | Phase 2 — List view and usePatients hook |
 | Status badge colors | Phase 2 — List view (badge table) |
 | Data-driven `patientFields` + RHF + Zod | Phase 3 — Add form |
@@ -64,7 +174,7 @@ Cross-check of codebase vs. this document:
 | Sheet detail + reused form + AlertDialog delete | Phase 4 — Detail, edit, delete |
 | Search/filter derived state | Phase 5 — Polish |
 | `onSnapshot` live subscription | Phase 5 — Polish |
-| Sonner toasts | Phase 5 — Polish |
+| Sonner toasts | [Stack at a glance — Sonner](#sonner-toasts--what-it-is) |
 | Responsive mobile cards | Phase 5 — Polish |
 | Compliance metadata + rules sketch + README | Phase 6 — Compliance touches |
 | Repo hygiene / production build | Phase 7 — Deploy and hygiene |
@@ -162,7 +272,7 @@ We chose **Radix UI** as the underlying component library and initialized shadcn
 
 ### Design tokens and theming
 
-We matched Finni's extracted palette and **Outfit** font (Google Fonts, weights 300–700) in `src/index.css`:
+Finni tokens were extracted from public CSS (Webflow stylesheet + Google Fonts). See **[Design token extraction](#design-token-extraction-finni-health-branding)** for the full workflow. Applied values in `src/index.css`:
 
 | Token | Value | Usage |
 |-------|-------|-------|

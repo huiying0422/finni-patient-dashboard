@@ -4,7 +4,7 @@ Provider-facing patient dashboard for Finni Health — track patients through In
 
 ## Design principles
 
-Three pillars guided every build decision. For the full rationale behind each technical choice, see [DECISIONS.md](./DECISIONS.md).
+Three pillars guided every build decision. For live-demo stack scripts, scope boundaries, and design-token extraction, see [DECISIONS.md](./DECISIONS.md).
 
 **Pillar 1 — Build the right thing.** YAGNI, KISS, and MVP scope discipline. Ship a complete provider workflow first; park auth, billing, intake portals, and other product surface area until the core CRUD path is solid.
 
@@ -16,14 +16,16 @@ Three pillars guided every build decision. For the full rationale behind each te
 
 ## Stack
 
-| Layer | Technology |
-|-------|------------|
-| UI | React 19, TypeScript, Vite |
-| Components | shadcn/ui (Radix UI, Nova preset) |
-| Styling | Tailwind CSS v4, Finni Health brand tokens |
-| Forms | React Hook Form + Zod |
-| Database | Firebase Firestore (v9 modular SDK) |
-| Toasts | Sonner |
+| Layer | Technology | Why (summary) |
+|-------|------------|---------------|
+| UI | React 19, TypeScript, Vite | Typed SPA, fast dev, static deploy |
+| Components | shadcn/ui (Radix UI, Nova preset) | Accessible primitives, repo-owned components |
+| Styling | Tailwind CSS v4, Finni brand tokens | [Extracted from public CSS](./DECISIONS.md#design-token-extraction-finni-health-branding) |
+| Forms | React Hook Form + Zod | Shared schema for UI and Firestore writes |
+| Database | Firebase Firestore (v9 modular SDK) | Real-time list, rules sketch for auth |
+| Toasts | Sonner | Non-blocking success/error feedback after CRUD |
+
+Full alternatives and demo talking points: [DECISIONS.md — Stack at a glance](./DECISIONS.md#stack-at-a-glance-demo-summary).
 
 ---
 
@@ -161,7 +163,11 @@ This take-home uses a personal Firebase project with open dev rules. **Do not us
 
 ## Future work
 
-The layered architecture is designed so new capabilities can be added incrementally — and many (auth scoping, audit logging, live subscriptions) can land without breaking existing CRUD. Parked product features:
+The layered architecture is designed so new capabilities can be added incrementally — and many (auth scoping, audit logging, live subscriptions) can land without breaking existing CRUD.
+
+**Presenting scope?** Use the [DECISIONS scope capstone](./DECISIONS.md#scope-and-future-work-capstone) — it has demo lines and a “why parked / how we’d add it” table.
+
+Parked product features:
 
 - Provider authentication and multi-tenant isolation (`providerId` + rules)
 - Full audit logging (append-only change history)
@@ -177,4 +183,4 @@ The layered architecture is designed so new capabilities can be added incrementa
 - Seed utility for demo/CI fixtures
 - Role-based access (admin, provider, read-only)
 
-For scope boundaries, delivery checklist, and per-feature notes, see [DECISIONS.md — Scope and future work capstone](./DECISIONS.md#scope-and-future-work-capstone). For why each technical choice beat its alternatives, see the decision entries in [DECISIONS.md](./DECISIONS.md).
+Per-feature notes and architecture hooks: [DECISIONS.md — Scope capstone](./DECISIONS.md#scope-and-future-work-capstone).
