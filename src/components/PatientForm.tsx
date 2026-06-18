@@ -1,3 +1,9 @@
+/**
+ * Reusable patient create/edit form.
+ *
+ * Renders fields from the shared patientFields config and validates with the
+ * same Zod schema the service layer uses, giving inline errors before submit.
+ */
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Controller, useForm, type FieldErrors } from "react-hook-form";
 
@@ -27,6 +33,7 @@ type PatientFormProps = {
   isSubmitting?: boolean;
 };
 
+/** Walk nested react-hook-form errors (e.g. address.state) using dot-path keys. */
 function getFieldError(
   errors: FieldErrors<PatientFormValues>,
   key: string,
@@ -62,6 +69,7 @@ function FieldControl({
   const fieldId = field.key.replace(".", "-");
 
   if (field.inputType === "select") {
+    // Radix Select is not a native input — wire it through Controller instead of register.
     return (
       <Controller
         name={field.key as keyof PatientFormValues}
@@ -117,6 +125,7 @@ export function PatientForm({
     handleSubmit,
     formState: { errors },
   } = useForm<PatientFormValues>({
+    // Same schema as patients.ts — UI and service share one validation definition.
     resolver: zodResolver(patientFormSchema),
     defaultValues,
   });
@@ -126,6 +135,7 @@ export function PatientForm({
       id={formId}
       onSubmit={handleSubmit(onSubmit)}
       className="flex flex-col gap-4"
+      // Rely on Zod for validation messages instead of conflicting browser defaults.
       noValidate
     >
       <div className="grid gap-4 sm:grid-cols-2">

@@ -1,3 +1,8 @@
+/**
+ * Firestore service layer — the only module that reads from or writes to the
+ * patients collection. Components and hooks call these functions instead of
+ * importing Firebase directly, keeping data access in one place.
+ */
 import {
   addDoc,
   collection,
@@ -57,6 +62,8 @@ export function subscribePatients(
     orderBy("createdAt", "desc"),
   );
 
+  // onSnapshot pushes changes whenever any client adds, edits, or deletes a patient,
+  // so the list stays current without manual refresh.
   return onSnapshot(
     patientsQuery,
     (snapshot) => {
@@ -65,19 +72,19 @@ export function subscribePatients(
       );
       onPatients(patients);
     },
-    (error) => {
-      onError(error);
-    },
+    onError,
   );
 }
 
 /** Validate and create a new patient; returns the new document id. */
 export async function addPatient(values: PatientFormValues): Promise<string> {
+  // Re-validate at the trust boundary — never assume the caller already ran Zod.
   const validated = patientFormSchema.parse(values);
   const firestoreData = omitUndefined(validated);
 
   const docRef = await addDoc(collection(db, PATIENTS_COLLECTION), {
     ...firestoreData,
+    // Audit fields are set here, not in the form — providers cannot forge create/edit history.
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
     lastEditedBy: PLACEHOLDER_EDITOR_ID,
@@ -96,6 +103,7 @@ export async function updatePatient(
 
   await updateDoc(doc(db, PATIENTS_COLLECTION, id), {
     ...firestoreData,
+    // serverTimestamp() ensures the edit time is authoritative, not client clock.
     updatedAt: serverTimestamp(),
     lastEditedBy: PLACEHOLDER_EDITOR_ID,
   });

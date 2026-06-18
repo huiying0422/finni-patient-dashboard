@@ -1,6 +1,120 @@
 # Architecture & Design Decisions
 
-This document records key decisions made while building the Finni Patient Dashboard take-home project.
+This document records **why** each technical choice was made — alternatives considered, rationale, and scope boundaries. For project overview, design principles, setup, data model, and module map, see [README.md](./README.md).
+
+Entries added during the documentation audit use an explicit **Decision → Alternatives → Rationale** format. Earlier entries retain their original prose; all are listed in the audit index below.
+
+---
+
+## Scope and future work capstone
+
+Delivered scope and parked features. The [README Future work](./README.md#future-work) section frames these as incremental extensions; this section records scope boundaries and per-feature notes.
+
+### In scope (delivered)
+
+- Provider-facing patient dashboard with full CRUD
+- Typed Zod data model and Firestore service layer
+- Data-driven add/edit form with address normalization and browser autofill
+- Live list via Firestore `onSnapshot`
+- Search, status filter, responsive layout, and Sonner toasts
+- Compliance metadata (`createdAt`, `updatedAt`, `lastEditedBy` placeholder)
+- Deny-by-default `firestore.rules` sketch with commented provider isolation
+- Finni Health theming (Outfit font, brand palette)
+
+### Parked features (not implemented)
+
+| Feature | Notes |
+|---------|-------|
+| **Provider auth and multi-tenant isolation** | Firebase Auth; `providerId` scoping per `firestore.rules` sketch |
+| **Full audit logging** | Append-only change history beyond `lastEditedBy` / `updatedAt` |
+| **BAA-backed address verification via server proxy** | Third-party validation (SmartyStreets, Google) routed through a backend proxy so PHI never hits client-only APIs |
+| **Family caregiver intake portal** | Separate portal for caregivers to submit or update patient info |
+| **Configurable intake questionnaires** | Dynamic pre-visit forms linked to patient records |
+| **E-signature and consent** | Capture signed consent documents with audit trail |
+| **Reminder emails and texts** | Automated outreach (appointments, onboarding steps) |
+| **Scheduling and visit history** | Calendar integration and visit log per patient |
+| **Insurance capture and billing** | Payer info, eligibility, and billing workflow |
+| **Status change history** | Timeline of lifecycle transitions (who moved Inquiry → Active, when) |
+| **Internationalized address** | Non-US formats, country-aware validation, i18n labels |
+| **Seed utility** | Scripted demo/development data loader (currently manual entry via UI) |
+| **Role-based access** | Admin vs. provider vs. read-only views |
+
+---
+
+## Documentation audit index (Phase 8)
+
+Cross-check of codebase vs. this document:
+
+| Choice (as implemented) | DECISIONS entry |
+|-------------------------|-----------------|
+| React 19 + Vite + TypeScript | [Application stack](#application-stack-react--vite--typescript) |
+| Tailwind CSS v4 | [Tailwind CSS v4](#tailwind-css-v4) |
+| shadcn/ui + Radix (Nova preset) | Phase 2 — Component library |
+| Zod schemas + `z.infer` | Phase 1 — Zod schemas |
+| Status enum | Phase 1 — Status as Zod enum |
+| Firestore service layer (`patients.ts`) | Phase 1 — Dedicated Firestore service layer |
+| Firebase env config | Phase 1 — Firebase config via environment variables |
+| Firestore dev rules posture | Phase 1 — Firestore security rules for development |
+| Finni theming (Outfit, tokens) | Phase 2 — Design tokens and theming |
+| `usePatients` hook + explicit UI states | Phase 2 — List view and usePatients hook |
+| Status badge colors | Phase 2 — List view (badge table) |
+| Data-driven `patientFields` + RHF + Zod | Phase 3 — Add form |
+| Address line2, autofill, normalization | Phase 3 — Address |
+| `omitUndefined` for Firestore writes | Phase 3 — Firestore writes omit undefined |
+| Sheet detail + reused form + AlertDialog delete | Phase 4 — Detail, edit, delete |
+| Search/filter derived state | Phase 5 — Polish |
+| `onSnapshot` live subscription | Phase 5 — Polish |
+| Sonner toasts | Phase 5 — Polish |
+| Responsive mobile cards | Phase 5 — Polish |
+| Compliance metadata + rules sketch + README | Phase 6 — Compliance touches |
+| Repo hygiene / production build | Phase 7 — Deploy and hygiene |
+| Dual-layer validation (UI + service) | [Dual-layer validation](#dual-layer-validation-ui-and-service) |
+| `@/` path alias | [Path alias](#path-alias-) |
+| Demo data via UI (no seed script) | [Demo data without seed utility](#demo-data-without-seed-utility) |
+
+---
+
+## Phase 8: Documentation audit additions
+
+### Application stack (React + Vite + TypeScript)
+
+**Decision:** Build the dashboard as a client-rendered SPA using **React 19**, **Vite 8**, and **TypeScript 6** with strict typing throughout.
+
+**Alternatives considered:** Next.js (SSR/SSG), Create React App (deprecated), plain JavaScript without types.
+
+**Rationale:** Vite gives fast local dev and a simple static deploy story appropriate for a Firebase-backed SPA. TypeScript catches schema and component mismatches at compile time. React 19 is the current stable baseline for hooks-based UI. No server rendering is needed for this authenticated-dashboard pattern in the take-home scope.
+
+### Tailwind CSS v4
+
+**Decision:** Use **Tailwind CSS v4** via the `@tailwindcss/vite` plugin, with shadcn CSS variables for theming in `src/index.css`.
+
+**Alternatives considered:** CSS Modules, styled-components, plain CSS, Tailwind v3 with PostCSS.
+
+**Rationale:** Tailwind pairs naturally with shadcn/ui and keeps styling colocated with components. v4's Vite plugin removes PostCSS boilerplate. Design tokens live in CSS variables so Finni brand colors apply globally without one-off hex values in components.
+
+### Dual-layer validation (UI and service)
+
+**Decision:** Validate patient data twice: **`zodResolver(patientFormSchema)`** in the form (inline errors) and **`patientFormSchema.parse()`** in the service layer before every Firestore write.
+
+**Alternatives considered:** UI-only validation, service-only validation, separate TypeScript interfaces without runtime checks.
+
+**Rationale:** UI validation gives immediate feedback; service validation is the trust boundary — Firestore writes must not depend on the client having run the form. One Zod schema powers both, so rules cannot drift.
+
+### Path alias (`@/`)
+
+**Decision:** Map **`@/*`** to **`src/*`** in both `tsconfig.app.json` and `vite.config.ts`.
+
+**Alternatives considered:** Relative imports only, other alias prefixes (`~`, `#`).
+
+**Rationale:** Matches shadcn/ui conventions and keeps imports stable when moving files. Avoids long `../../` paths across components, hooks, lib, and services.
+
+### Demo data without seed utility
+
+**Decision:** Populate demo data **manually through the Add Patient UI** (or the earlier smoke-test path). No scripted seed utility is included in this repo.
+
+**Alternatives considered:** Firestore seed script, Firebase Emulator import, fixture JSON loaded on startup.
+
+**Rationale:** A seed script adds scope and maintenance for a take-home with a live Firebase project. Manual entry validates the full CRUD path. A seed utility remains a parked item for team onboarding and CI fixtures.
 
 ---
 
@@ -157,14 +271,13 @@ We added audit-oriented metadata and documentation for a healthcare context:
 
 1. **`createdAt`, `updatedAt`, `lastEditedBy`** — timestamps are set via `serverTimestamp()` on create/update; `lastEditedBy` is written with a placeholder constant (`PLACEHOLDER_EDITOR_ID`) until Firebase Auth provides real user identity.
 2. **`firestore.rules`** — deny-by-default sketch with a commented provider-isolation rule (`providerId == request.auth.uid`). Not enforced yet because auth is parked; documents the production target.
-3. **`README.md`** — setup instructions, stack, data model, PHI handling note, and future work.
-4. **`.env.example`** — blank keys only, no secrets.
+3. **Compliance documentation** — README PHI posture and `.env.example` (blank keys only, no secrets).
 
 **Why placeholder `lastEditedBy`:** The field exists on the schema and is written on every mutation so the audit trail shape is ready. Swapping the constant for `request.auth.uid` (or a profile id) is a one-line change once auth lands.
 
 **Why rules in-repo:** Security rules are the server-side enforcement layer for PHI. Committing a least-privilege sketch makes the production intent reviewable even while dev uses open rules.
 
-**Why README PHI section:** Reviewers and future operators need to know this is a demo posture — data minimization, no PHI in logs/LLMs, encryption defaults, and BAA requirement for real production.
+**Why document PHI posture:** Reviewers and future operators need to know this is a demo posture. The README summarizes safeguards; this section records the decision to surface them during build.
 
 ---
 

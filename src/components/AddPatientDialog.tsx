@@ -1,3 +1,9 @@
+/**
+ * Modal workflow for adding a new patient.
+ *
+ * Owns dialog open/close state, submit loading, and success/error feedback;
+ * delegates field rendering and validation to PatientForm.
+ */
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -28,6 +34,7 @@ export function AddPatientDialog() {
     try {
       await addPatient(values);
       setOpen(false);
+      // Remount the form so the next open starts with empty defaults.
       setFormKey((current) => current + 1);
       toast.success("Patient added successfully");
     } catch (error) {
@@ -44,6 +51,7 @@ export function AddPatientDialog() {
     setOpen(nextOpen);
     if (!nextOpen) {
       setSubmitError(null);
+      // Discard in-progress edits when the dialog closes without saving.
       setFormKey((current) => current + 1);
     }
   }
@@ -81,6 +89,7 @@ export function AddPatientDialog() {
           >
             Cancel
           </Button>
+          {/* Submit lives in the footer but targets the form by id — PatientForm has no inline submit row here. */}
           <Button
             type="submit"
             form="add-patient-form"

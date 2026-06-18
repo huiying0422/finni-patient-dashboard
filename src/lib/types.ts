@@ -1,3 +1,10 @@
+/**
+ * Patient types and Zod validation schemas — the single source of truth for
+ * what a patient record contains and what values are acceptable on create/update.
+ *
+ * Schemas drive both TypeScript types (via z.infer) and runtime validation in
+ * the form and service layer, so UI rules and Firestore writes never drift apart.
+ */
 import { Timestamp } from "firebase/firestore";
 import { z } from "zod";
 
@@ -11,7 +18,7 @@ const US_STATE_REGEX = /^[A-Z]{2}$/;
 const trimmedRequired = (message: string) =>
   z.string().trim().min(1, message);
 
-/** Trim optional strings; empty strings become undefined. */
+/** Trim optional strings; empty strings become undefined so Firestore can omit the field. */
 const trimmedOptional = () =>
   z
     .string()
@@ -31,6 +38,7 @@ export const addressSchema = z.object({
     .string()
     .trim()
     .min(1, "State is required")
+    // Normalize to uppercase before regex check so "ca" and "CA" both validate.
     .transform((value) => value.toUpperCase())
     .pipe(
       z.string().regex(US_STATE_REGEX, "Enter a valid 2-letter state code"),
@@ -69,12 +77,15 @@ export const patientFormSchema = z.object({
   address: addressSchema,
 });
 
-/** Inferred type for patient form field values. */
+/** Inferred from the schema — keeps form types in sync with validation rules automatically. */
 export type PatientFormValues = z.infer<typeof patientFormSchema>;
 
 /**
  * Full patient record stored in Firestore, extending form values
  * with system-generated and metadata fields.
+ *
+ * Audit fields (createdAt, updatedAt, lastEditedBy) are written by the service
+ * layer, not the form, so providers cannot backdate or spoof edit history.
  */
 export type Patient = PatientFormValues & {
   id: string;

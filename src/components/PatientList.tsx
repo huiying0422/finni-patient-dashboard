@@ -1,3 +1,9 @@
+/**
+ * Main patient list view — search, status filtering, and entry point to detail.
+ *
+ * Reads live data from usePatients and derives filtered results in memory so
+ * the underlying Firestore list is never mutated by UI filters.
+ */
 import { useMemo, useState } from "react";
 
 import { AddPatientDialog } from "@/components/AddPatientDialog";
@@ -22,9 +28,14 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { usePatients } from "@/hooks/usePatients";
-import type { Patient, PatientFormValues } from "@/lib/types";
+import {
+  formatDateOfBirth,
+  formatFullName,
+  STATUS_BADGE_STYLES,
+  type PatientStatus,
+} from "@/lib/patientFormat";
+import type { Patient } from "@/lib/types";
 
-type PatientStatus = PatientFormValues["status"];
 type StatusFilter = "All" | PatientStatus;
 
 const STATUS_FILTERS: StatusFilter[] = [
@@ -35,35 +46,6 @@ const STATUS_FILTERS: StatusFilter[] = [
   "Churned",
 ];
 
-const STATUS_BADGE_STYLES: Record<
-  PatientStatus,
-  { backgroundColor: string; color: string }
-> = {
-  Inquiry: { backgroundColor: "#D1BCE7", color: "#4A3A54" },
-  Onboarding: { backgroundColor: "#FDE7D6", color: "#B8480F" },
-  Active: { backgroundColor: "#E2F3E7", color: "#2E7D3A" },
-  Churned: { backgroundColor: "#E6E6E6", color: "#758696" },
-};
-
-function formatFullName(patient: Patient): string {
-  return [patient.firstName, patient.middleName, patient.lastName]
-    .filter(Boolean)
-    .join(" ");
-}
-
-function formatDateOfBirth(dateOfBirth: string): string {
-  const parsed = new Date(dateOfBirth);
-  if (Number.isNaN(parsed.getTime())) {
-    return dateOfBirth;
-  }
-
-  return parsed.toLocaleDateString("en-US", {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-  });
-}
-
 function filterPatients(
   patients: Patient[],
   searchQuery: string,
@@ -71,6 +53,7 @@ function filterPatients(
 ): Patient[] {
   const normalizedQuery = searchQuery.trim().toLowerCase();
 
+  // Pure filter — returns a new array; the source list from Firestore stays untouched.
   return patients.filter((patient) => {
     if (statusFilter !== "All" && patient.status !== statusFilter) {
       return false;
@@ -153,6 +136,7 @@ export function PatientList() {
     [patients, searchQuery, statusFilter],
   );
 
+  // Resolve selection from the live list so edits/deletes reflected by onSnapshot stay in sync.
   const selectedPatient =
     patients.find((patient) => patient.id === selectedPatientId) ?? null;
 
@@ -235,6 +219,7 @@ export function PatientList() {
 
           {!loading && !error && filteredPatients.length > 0 && (
             <>
+              {/* Cards on small screens; table on md+ — same data, different density. */}
               <div className="space-y-3 md:hidden">
                 {filteredPatients.map((patient) => (
                   <PatientCard

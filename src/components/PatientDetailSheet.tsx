@@ -1,5 +1,10 @@
+/**
+ * Side panel for viewing, editing, and deleting a single patient.
+ *
+ * Toggles between read-only detail (driven by patientFields) and inline edit
+ * via the shared PatientForm. Writes go through the patients service layer.
+ */
 import { useState } from "react";
-import type { Timestamp } from "firebase/firestore";
 import { toast } from "sonner";
 
 import { PatientForm } from "@/components/PatientForm";
@@ -24,6 +29,12 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import {
+  formatDateOfBirth,
+  formatFullName,
+  formatTimestamp,
+  STATUS_BADGE_STYLES,
+} from "@/lib/patientFormat";
+import {
   patientFields,
   patientToFormValues,
   type PatientFieldKey,
@@ -37,46 +48,7 @@ type PatientDetailSheetProps = {
   onOpenChange: (open: boolean) => void;
 };
 
-const STATUS_BADGE_STYLES: Record<
-  PatientFormValues["status"],
-  { backgroundColor: string; color: string }
-> = {
-  Inquiry: { backgroundColor: "#D1BCE7", color: "#4A3A54" },
-  Onboarding: { backgroundColor: "#FDE7D6", color: "#B8480F" },
-  Active: { backgroundColor: "#E2F3E7", color: "#2E7D3A" },
-  Churned: { backgroundColor: "#E6E6E6", color: "#758696" },
-};
-
-function formatFullName(patient: Patient): string {
-  return [patient.firstName, patient.middleName, patient.lastName]
-    .filter(Boolean)
-    .join(" ");
-}
-
-function formatDateOfBirth(dateOfBirth: string): string {
-  const parsed = new Date(dateOfBirth);
-  if (Number.isNaN(parsed.getTime())) {
-    return dateOfBirth;
-  }
-
-  return parsed.toLocaleDateString("en-US", {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-  });
-}
-
-function formatTimestamp(timestamp: Timestamp | undefined): string {
-  if (!timestamp || typeof timestamp.toDate !== "function") {
-    return "—";
-  }
-
-  return timestamp.toDate().toLocaleString("en-US", {
-    dateStyle: "medium",
-    timeStyle: "short",
-  });
-}
-
+/** Map a field key to a display string, using the same labels/order as the form config. */
 function getPatientFieldValue(
   patient: Patient,
   key: PatientFieldKey,
@@ -188,6 +160,7 @@ export function PatientDetailSheet({
         {isEditing ? (
           <div className="px-4 pb-4">
             <PatientForm
+              // Remount when live data changes so the form picks up the latest saved values.
               key={`edit-${patient.id}-${patient.updatedAt?.seconds ?? 0}`}
               formId={`edit-patient-${patient.id}`}
               defaultValues={patientToFormValues(patient)}
@@ -219,6 +192,7 @@ export function PatientDetailSheet({
               ))}
             </dl>
 
+            {/* Audit metadata — written by the service layer, read-only in the UI. */}
             <dl className="grid gap-4 border-t border-border pt-4 sm:grid-cols-2">
               <div>
                 <dt className="text-sm font-medium text-muted-foreground">

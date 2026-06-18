@@ -1,3 +1,9 @@
+/**
+ * React hook that exposes the live patient list to UI components.
+ *
+ * Wraps the Firestore onSnapshot subscription with loading and error state so
+ * views can render skeletons, empty states, or error messages consistently.
+ */
 import { useEffect, useState } from "react";
 
 import { subscribePatients } from "@/services/patients";
@@ -22,6 +28,7 @@ export function usePatients() {
       },
     );
 
+    // Tear down the listener when the component unmounts to avoid leaks.
     return unsubscribe;
   }, []);
 
