@@ -21,7 +21,7 @@ function validateFirebaseEnvPlugin(
         this.error(message);
       }
       console.log(
-        `[firebase] embedding projectId=${firebaseConfig.projectId} for ${process.env.VERCEL_ENV ?? "local"} build`,
+        `[firebase] embedding projectId=${firebaseConfig.projectId} for ${process.env.CI ? "ci" : "local"} build`,
       );
     },
   };

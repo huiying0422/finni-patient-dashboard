@@ -22,7 +22,7 @@ export const FIREBASE_ENV_ALIASES: Record<
   storageBucket: ["VITE_FIREBASE_STORAGE_BUCKET", "storageBucket"],
   messagingSenderId: [
     "VITE_FIREBASE_MESSAGING_SENDER_ID",
-    // Common Vercel typos / alternate names:
+    // Common typos / alternate names:
     "VITE_FIREBASE_MESSAGING_SENDER",
     "VITE_MESSAGING_SENDER_ID",
     "messagingSenderId",
@@ -80,7 +80,7 @@ export function auditFirebaseEnvKeys(
   );
 }
 
-/** Human-readable build error listing exact Vercel names to set. */
+/** Human-readable build error listing exact env names to set. */
 export function formatMissingFirebaseEnvError(
   env: Record<string, string | undefined>,
 ): string {
@@ -95,12 +95,12 @@ export function formatMissingFirebaseEnvError(
     const keyStatus = keys
       .map((key) => `${key}=${audit[key]}`)
       .join(", ");
-    return `  • ${field}: set ${keys[0]} (checked: ${keyStatus})`;
+    return `  • ${field}: set ${keys[0]} in .env (checked: ${keyStatus})`;
   });
 
   return (
-    "Firebase env incomplete at build time. In Vercel → Settings → Environment Variables:\n" +
+    "Firebase env incomplete at build time. Add to .env before npm run build:\n" +
     lines.join("\n") +
-    "\nEnable Production + Preview, save, then Redeploy."
+    "\nThen run npm run deploy."
   );
 }

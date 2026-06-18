@@ -23,6 +23,7 @@ Three pillars guided every build decision. For live-demo stack scripts, scope bo
 | Styling | Tailwind CSS v4, Finni brand tokens | [Extracted from public CSS](./DECISIONS.md#design-token-extraction-finni-health-branding) |
 | Forms | React Hook Form + Zod | Shared schema for UI and Firestore writes |
 | Database | Firebase Firestore (v9 modular SDK) | Real-time list, rules sketch for auth |
+| Hosting | Firebase Hosting | Static SPA deploy; same project as Firestore |
 | Toasts | Sonner | Non-blocking success/error feedback after CRUD |
 
 Full alternatives and demo talking points: [DECISIONS.md — Stack at a glance](./DECISIONS.md#stack-at-a-glance-demo-summary).
@@ -101,6 +102,8 @@ allow read, write: if true;  // DEV ONLY
 
 The committed [`firestore.rules`](./firestore.rules) file is a deny-all sketch — publish open rules in the Console for the demo.
 
+**Why Firebase Hosting (not Vercel)?** See [DECISIONS.md — Firebase Hosting](./DECISIONS.md#firebase-hosting--why-we-deploy-here-and-not-vercel) for the full rationale and what went wrong on Vercel (env vars, API referrers, cross-vendor debugging).
+
 ---
 
 ## Data model
@@ -151,7 +154,7 @@ Each module has a single responsibility. Build phases show when the module was i
 | `src/lib/patientFields.ts` | Declarative field config driving add and edit forms | 3 |
 | `src/components/PatientForm.tsx` | Shared create/edit form (RHF + Zod) | 3 |
 | `src/components/AddPatientDialog.tsx` | Add-patient modal workflow | 3 |
-| `src/components/PatientList.tsx` | Patient list, search, status filter, responsive layout | 2 · search/filter/toasts in 5 |
+| `src/components/PatientList.tsx` | Patient list, search, filter, pagination (20/page), refresh | 2 · search/filter/toasts in 5 |
 | `src/components/PatientDetailSheet.tsx` | View, edit, and delete in a side panel | 4 |
 | `src/lib/patientFormat.ts` | Display formatters and status badge styling | 8 |
 | `src/lib/constants.ts` | Placeholder editor identity until Firebase Auth | 6 |
@@ -159,6 +162,7 @@ Each module has a single responsibility. Build phases show when the module was i
 | `src/App.tsx` | App shell, header, and global toast host | 2 |
 | `src/components/ui/*` | shadcn/ui primitives (button, dialog, sheet, table, …) | 2–4 |
 | `firestore.rules` | Deny-by-default rules with commented provider isolation | 6 |
+| `firebase.json` | Firebase Hosting config (`dist/`, SPA rewrites) | 7 |
 | `.env.example` | Environment variable template (no secrets) | 1 |
 
 Layering: **components** render UI and call **hooks** or **services**; **hooks** wrap subscriptions; **services** validate with Zod and talk to Firestore. Components never import the Firebase SDK directly.
@@ -201,7 +205,6 @@ Parked product features:
 - Insurance capture and billing
 - Status change history (lifecycle timeline)
 - Internationalized address formats
-- Seed utility for demo/CI fixtures
 - Role-based access (admin, provider, read-only)
 
 Per-feature notes and architecture hooks: [DECISIONS.md — Scope capstone](./DECISIONS.md#scope-and-future-work-capstone).

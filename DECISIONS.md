@@ -17,6 +17,7 @@ One-line answers for each row in the [README stack table](./README.md#stack). Fu
 | **Styling** | Tailwind CSS v4 + CSS variables | CSS Modules, styled-components | Pairs with shadcn; tokens in `src/index.css` keep brand colors global without scattered hex values. |
 | **Forms** | React Hook Form + Zod | Formik, Yup-only, native forms | RHF handles form state; `zodResolver` shares the **same schema** the service layer uses before Firestore writes. |
 | **Database** | Firebase Firestore (modular SDK) | Supabase, REST + Postgres, mock API | Real-time `onSnapshot` for live lists; env-based config; `firestore.rules` sketch ready for auth scoping. |
+| **Hosting** | Firebase Hosting | Vercel, Netlify, Cloudflare Pages | Same vendor as Firestore; SPA rewrites in `firebase.json`; no cross-platform env/referrer debugging. |
 | **Toasts** | Sonner | react-hot-toast, react-toastify | Lightweight pop-up feedback after create/update/delete — confirms success or surfaces server errors without blocking the UI. |
 
 ### Sonner (Toasts) — what it is
@@ -35,7 +36,28 @@ One-line answers for each row in the [README stack table](./README.md#stack). Fu
 
 **Alternatives considered:** Supabase Postgres, a custom REST API, in-memory mock data.
 
-**Rationale:** Firestore gives real-time listeners out of the box (no manual refresh after writes), Firebase Console is quick to stand up for a take-home, and security rules provide a credible path to provider-scoped access in production.
+**Rationale:** Firestore gives real-time listeners out of the box, Firebase Console is quick to stand up for a take-home, and security rules provide a credible path to provider-scoped access in production. Hosting on **Firebase Hosting** keeps database, auth (future), and static deploy in one project.
+
+### Firebase Hosting — why we deploy here (and not Vercel)
+
+**Decision:** Ship the production build to **Firebase Hosting** (`firebase.json` → `dist/`, `npm run deploy`).
+
+**Alternatives considered:** Vercel (initial deploy target), Netlify, Cloudflare Pages.
+
+**Rationale:** This app is a **Firebase-backed SPA** — Firestore, config, and rules all live in one Google Cloud / Firebase project. Firebase Hosting is the path of least resistance: one console, one CLI, default API-key referrer coverage for `*.web.app` / `*.firebaseapp.com`, and SPA rewrites without extra vendor config.
+
+**Why Vercel was difficult for this project (lessons learned):**
+
+| Issue | What happened | Why Firebase Hosting avoids or simplifies it |
+|-------|----------------|-----------------------------------------------|
+| **Build-time env vars** | Vite only embeds `VITE_*` at `npm run build`. Vercel builds run on their servers — vars must be set in the Vercel dashboard *before* each deploy. | Local `.env` + `npm run deploy` — same machine that already works for `npm run dev`. |
+| **Wrong env names** | Firebase Console uses `apiKey`, `projectId`, etc. We initially set those names on Vercel; the client bundle got empty config. | `.env.example` documents `VITE_FIREBASE_*`; one naming convention end-to-end. |
+| **Missing / mistyped keys** | `VITE_FIREBASE_MESSAGING_SENDER_ID` was absent once — build failed with TS/plugin errors after we added validation. | Build runs where `.env` is already validated locally. |
+| **API key HTTP referrers** | Google Cloud API key had to explicitly allow `https://*.vercel.app/*` in addition to `localhost`. Easy to miss; causes slow hangs or empty data. | Firebase Hosting domains are in the same ecosystem; referrer setup is simpler for `*.web.app`. |
+| **Firestore rules vs repo** | Committed `firestore.rules` is deny-all; **Console** rules must be published separately — true on any host, but Vercel added confusion because the app “worked locally” but not on `*.vercel.app`. | Same rules apply everywhere; Hosting removed the extra variable of a second platform’s deploy pipeline. |
+| **Cross-vendor debugging** | Database in Firebase Console, hosting on Vercel, env in a third UI — hard to tell if the bug was code, env, referrers, or rules. | Single project: Firestore + Hosting + env in one place. |
+
+**Takeaway for demos:** For a Vite + Firebase SPA, prefer **Firebase Hosting** (or ensure Vercel has all six `VITE_FIREBASE_*` vars, API referrers for `*.vercel.app`, and published Firestore rules before debugging app code).
 
 ### React Hook Form + Zod — why together
 
@@ -56,7 +78,8 @@ Use this section as your **scope script** in a live demo: what shipped, what we 
 | Capability | One-line demo line |
 |------------|-------------------|
 | Full CRUD | Add, view, edit, and delete patients with validation at every step. |
-| Live list | Firestore `onSnapshot` — list updates automatically, no refresh button. |
+| Live list | Firestore `onSnapshot` — list updates automatically; **Refresh** re-subscribes on demand. |
+| Pagination | 20 patients per page (client-side) — scales UI with large demo datasets. |
 | Search + filter | Client-side derived state; source data never mutated. |
 | Data-driven form | New fields = config in `patientFields.ts` + schema entry, not a form rewrite. |
 | Service layer | Components never touch Firebase directly; Zod runs before every write. |
@@ -82,7 +105,6 @@ Each item below is **intentionally out of MVP scope**. The third column is your 
 | **Insurance capture and billing** | Payer data expands PHI surface | Schema extension + service validation; no refactor of list/form shell |
 | **Status change history** | MVP shows current status only | Status enum + `updatedAt`/`lastEditedBy`; append transition log on `updatePatient` |
 | **Internationalized address** | US-only validation for MVP | `addressSchema` is isolated; swap or extend without touching form mapper |
-| **Seed utility** | Manual/demo seeding sufficient for review | Temporary button + `seedPatients()` calls same `addPatient` path |
 | **Role-based access** | Depends on auth | Rules sketch + `lastEditedBy`; UI gates by role once Auth lands |
 
 For the README’s incremental-framing summary, see [Future work](./README.md#future-work).
@@ -184,6 +206,7 @@ Cross-check of codebase vs. this document:
 | Status enum | Phase 1 — Status as Zod enum |
 | Firestore service layer (`patients.ts`) | Phase 1 — Dedicated Firestore service layer |
 | Firebase env config | Phase 1 — Firebase config via environment variables |
+| Firebase Hosting deploy | [Firebase Hosting](#firebase-hosting--why-we-deploy-here-and-not-vercel) |
 | Firestore dev rules posture | Phase 1 — Firestore security rules for development |
 | Finni theming (Outfit, tokens) | [Design token extraction](#design-token-extraction-finni-health-branding) |
 | `usePatients` hook + explicit UI states | Phase 2 — List view and usePatients hook |
@@ -200,7 +223,8 @@ Cross-check of codebase vs. this document:
 | Repo hygiene / production build | Phase 7 — Deploy and hygiene |
 | Dual-layer validation (UI + service) | [Dual-layer validation](#dual-layer-validation-ui-and-service) |
 | `@/` path alias | [Path alias](#path-alias-) |
-| Demo data via UI (no seed script) | [Demo data without seed utility](#demo-data-without-seed-utility) |
+| Pagination (20 per page) | Phase 5 — Polish |
+| Manual refresh button | Phase 5 — Polish |
 
 ---
 
@@ -238,13 +262,13 @@ Cross-check of codebase vs. this document:
 
 **Rationale:** Matches shadcn/ui conventions and keeps imports stable when moving files. Avoids long `../../` paths across components, hooks, lib, and services.
 
-### Demo data without seed utility
+### Demo data
 
-**Decision:** Populate demo data **manually through the Add Patient UI** (or the earlier smoke-test path). No scripted seed utility is included in this repo.
+**Decision:** Populate demo data through the **Add Patient UI** or existing Firestore records. The temporary seed button and `seedPatients()` utility were removed after Firebase Hosting migration.
 
-**Alternatives considered:** Firestore seed script, Firebase Emulator import, fixture JSON loaded on startup.
+**Alternatives considered:** Firestore seed script, Firebase Emulator import, fixture JSON loaded on startup, Faker-based bulk seed in the UI.
 
-**Rationale:** A seed script adds scope and maintenance for a take-home with a live Firebase project. Manual entry validates the full CRUD path. A seed utility remains a parked item for team onboarding and CI fixtures.
+**Rationale:** Bulk seeding added bundle weight (`@faker-js/faker`) and masked production deploy issues during the Vercel phase. Manual entry and real Firestore data better validate the full CRUD path on the hosted URL.
 
 ---
 
@@ -270,15 +294,15 @@ All Firestore access lives in `src/services/patients.ts`. UI components and hook
 
 ### Firebase config via environment variables
 
-Firebase credentials are loaded from `.env` using Vite's `VITE_*` prefix and initialized in `src/lib/firebase.ts`. A committed `.env.example` documents required keys; real secrets stay gitignored.
+Firebase credentials are loaded from `.env` using Vite's `VITE_*` prefix and embedded at build time via `vite.config.ts` → `__FIREBASE_CONFIG__`. A committed `.env.example` documents required keys; real secrets stay gitignored.
 
-**Why:** Keeps credentials out of source control while allowing each developer to point at their own Firebase project.
+**Why:** Keeps credentials out of source control while allowing each developer to point at their own Firebase project. For **Firebase Hosting**, run `npm run build` with `.env` present locally (or set the same vars in CI); Vite bakes config into `dist/` — there is no runtime env on the static host.
 
 ### Firestore security rules for development
 
-Initial Firebase rules denied all reads/writes (`allow read, write: if false`). We opened rules temporarily for the smoke test so unauthenticated client writes succeed during local development.
+Initial Firebase rules denied all reads/writes (`allow read, write: if false`). We opened rules temporarily in the Firebase Console so unauthenticated client writes succeed during local development and on Firebase Hosting.
 
-**Why:** The app does not yet use Firebase Auth. Production rules should require authentication and scope access to the `patients` collection.
+**Why:** The app does not yet use Firebase Auth. Production rules should require authentication and scope access to the `patients` collection. Rules must be **published in the Console** — the committed `firestore.rules` file is a sketch only.
 
 ---
 
@@ -377,17 +401,21 @@ Each patient row opens a **shadcn Sheet** showing all fields plus `createdAt` an
 
 ### Polish: search, filter, live updates, toasts
 
-The list layer gained five UX improvements:
+The list layer gained UX improvements:
 
 1. **Search input** — filters by full name as you type.
 2. **Status filter pills** — All, Inquiry, Onboarding, Active, Churned.
 3. **`onSnapshot` live subscription** — replaces the one-time `listPatients` fetch in `usePatients`.
-4. **Sonner toasts** — success and error feedback on create, update, and delete.
-5. **Responsive layout** — card list on mobile, table on desktop; improved skeletons and spacing.
+4. **Refresh button** — re-subscribes to Firestore on demand (useful after connection issues or when verifying hosted deploy).
+5. **Pagination** — 20 patients per page (client-side) so large datasets stay scannable.
+6. **Sonner toasts** — success and error feedback on create, update, and delete.
+7. **Responsive layout** — card list on mobile, table on desktop; improved skeletons and spacing.
 
 **Why derived state for search/filter:** The source `patients` array from Firestore is never mutated. Search query and status filter are separate UI state; `useMemo` derives `filteredPatients` from the source list. Filtering stays instant, predictable, and easy to reset without re-fetching.
 
-**Why `onSnapshot`:** A one-time fetch requires manual refresh after every write. A Firestore snapshot listener pushes changes to all open clients in real time — when a patient is added, edited, or deleted, the list updates automatically with no refresh button.
+**Why `onSnapshot` plus Refresh:** The snapshot listener pushes live changes automatically. Refresh re-attaches the subscription when you want to force a reload — helpful during deploy debugging (we learned this on Vercel when the list appeared stuck).
+
+**Why pagination:** With 100+ demo patients, a single scrolling table is slow to scan. Twenty per page keeps the dashboard readable without server-side query changes.
 
 **Why toasts:** Inline form errors handle validation; toasts confirm successful CRUD operations and surface unexpected server errors without blocking the UI.
 
@@ -417,13 +445,16 @@ We added audit-oriented metadata and documentation for a healthcare context:
 
 Final cleanup before handoff:
 
-- **Removed dead code** — unused Vite starter assets (`App.css`, template SVGs/hero image), unused service exports (`listPatients`, `getPatient`), and the unused `@fontsource-variable/geist` dependency (app uses Outfit via Google Fonts).
+- **Firebase Hosting** — `firebase.json` serves `dist/` with SPA rewrites; `npm run deploy` runs build + `firebase deploy --only hosting`. GitHub Actions workflows deploy on merge/PR preview.
+- **Removed dead code** — unused Vite starter assets, unused service exports, seed utility (`@faker-js/faker`), and the unused `@fontsource-variable/geist` dependency.
 - **No console noise** — no stray `console.log` calls in source.
 - **No `any` types** — TypeScript strict throughout; Firestore snapshots cast via typed helpers.
 - **`.gitignore`** — covers `node_modules`, `.env`, and build output (`dist`).
-- **Production build** — `pnpm build` (tsc + vite) passes with zero errors.
+- **Production build** — `npm run build` (tsc + vite) passes with zero errors; build fails fast if any `VITE_FIREBASE_*` key is missing.
 
-**Why a hygiene pass:** Six phases of rapid iteration leave starter-template cruft and unused exports. Cleaning before deploy keeps the repo reviewable and the bundle lean.
+**Why Firebase Hosting over Vercel:** See [Firebase Hosting — why we deploy here](#firebase-hosting--why-we-deploy-here-and-not-vercel). Single-vendor deploy eliminated the env-var and API-referrer issues that blocked the Vercel production URL.
+
+**Why a hygiene pass:** Rapid iteration left starter-template cruft and temporary demo tooling. Cleaning before handoff keeps the repo reviewable and the bundle lean (~280 KB gzip after removing Faker).
 
 ---
 
