@@ -11,7 +11,7 @@ export type FirebaseConfigField = (typeof FIREBASE_CONFIG_FIELDS)[number];
 
 export type ResolvedFirebaseConfig = Record<FirebaseConfigField, string>;
 
-/** Maps each Firebase field to accepted env var names (VITE_* local, Firebase names on Vercel). */
+/** Maps each Firebase field to VITE_* env var names (required naming on Vercel). */
 export const FIREBASE_ENV_ALIASES: Record<
   FirebaseConfigField,
   readonly [string, string]

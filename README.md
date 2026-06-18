@@ -84,19 +84,19 @@ allow read, write: if true;  // DEV ONLY
 
 This is a **Vite SPA** — Firebase runs in the browser, but **Firebase config is embedded at build time**. Vercel must have your env vars **before** the build runs.
 
-1. In [Vercel](https://vercel.com) → your project → **Settings → Environment Variables**, add all six variables below. Enable them for **Production**, **Preview**, and **Development**.
-2. **Redeploy** after adding or changing any variable (Deployments → ⋯ → **Redeploy**). Saving env vars alone does not update an existing deployment — Vite bakes them in during `pnpm build`.
+1. In [Vercel](https://vercel.com) → your project → **Settings → Environment Variables**, add all six **`VITE_FIREBASE_*`** variables below (names must start with `VITE_`). Enable them for **Production**, **Preview**, and **Development**.
+2. **Redeploy** after adding or changing any variable (Deployments → ⋯ → **Redeploy**). Saving env vars alone does not update an existing deployment — Vite bakes them in during `npm run build`.
 
-| Firebase Console field | Accepted env var names |
-|------------------------|------------------------|
-| `apiKey` | `VITE_FIREBASE_API_KEY` or `apiKey` |
-| `authDomain` | `VITE_FIREBASE_AUTH_DOMAIN` or `authDomain` |
-| `projectId` | `VITE_FIREBASE_PROJECT_ID` or `projectId` |
-| `storageBucket` | `VITE_FIREBASE_STORAGE_BUCKET` or `storageBucket` |
-| `messagingSenderId` | `VITE_FIREBASE_MESSAGING_SENDER_ID` or `messagingSenderId` |
-| `appId` | `VITE_FIREBASE_APP_ID` or `appId` |
+| Vercel variable name | Firebase Console field |
+|----------------------|------------------------|
+| `VITE_FIREBASE_API_KEY` | `apiKey` |
+| `VITE_FIREBASE_AUTH_DOMAIN` | `authDomain` |
+| `VITE_FIREBASE_PROJECT_ID` | `projectId` |
+| `VITE_FIREBASE_STORAGE_BUCKET` | `storageBucket` |
+| `VITE_FIREBASE_MESSAGING_SENDER_ID` | `messagingSenderId` |
+| `VITE_FIREBASE_APP_ID` | `appId` |
 
-Local `.env` uses `VITE_FIREBASE_*`. Vercel can use either naming style — both are read at build time.
+Copy values from Firebase Console → Project settings → Your apps → Web app. Do **not** use bare names like `apiKey` or `projectId` on Vercel — use the `VITE_FIREBASE_*` names above.
 
 3. In **Firebase Console → Project settings**, confirm the web app `projectId` matches `VITE_FIREBASE_PROJECT_ID`.
 4. **Firestore rules (required):** Firebase Console → Firestore → Rules → publish dev-open rules:

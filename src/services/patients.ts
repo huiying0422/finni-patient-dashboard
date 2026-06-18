@@ -17,6 +17,7 @@ import {
 
 import { PLACEHOLDER_EDITOR_ID } from "@/lib/constants";
 import { firebaseSetupMessage, requireDb } from "@/lib/firebase";
+import { withFirestoreTimeout } from "@/lib/firestoreTimeout";
 import { sortPatientsByCreatedAt } from "@/lib/sortPatients";
 import {
   patientFormSchema,
@@ -98,13 +99,15 @@ export async function addPatient(values: PatientFormValues): Promise<string> {
   const validated = patientFormSchema.parse(values);
   const firestoreData = omitUndefined(validated);
 
-  const docRef = await addDoc(collection(requireDb(), PATIENTS_COLLECTION), {
-    ...firestoreData,
-    // Audit fields are set here, not in the form — providers cannot forge create/edit history.
-    createdAt: serverTimestamp(),
-    updatedAt: serverTimestamp(),
-    lastEditedBy: PLACEHOLDER_EDITOR_ID,
-  });
+  const docRef = await withFirestoreTimeout(
+    addDoc(collection(requireDb(), PATIENTS_COLLECTION), {
+      ...firestoreData,
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+      lastEditedBy: PLACEHOLDER_EDITOR_ID,
+    }),
+    "Save patient",
+  );
 
   return docRef.id;
 }
@@ -117,15 +120,20 @@ export async function updatePatient(
   const validated = patientFormSchema.parse(values);
   const firestoreData = omitUndefined(validated);
 
-  await updateDoc(doc(requireDb(), PATIENTS_COLLECTION, id), {
-    ...firestoreData,
-    // serverTimestamp() ensures the edit time is authoritative, not client clock.
-    updatedAt: serverTimestamp(),
-    lastEditedBy: PLACEHOLDER_EDITOR_ID,
-  });
+  await withFirestoreTimeout(
+    updateDoc(doc(requireDb(), PATIENTS_COLLECTION, id), {
+      ...firestoreData,
+      updatedAt: serverTimestamp(),
+      lastEditedBy: PLACEHOLDER_EDITOR_ID,
+    }),
+    "Update patient",
+  );
 }
 
 /** Delete a patient by id. */
 export async function deletePatient(id: string): Promise<void> {
-  await deleteDoc(doc(requireDb(), PATIENTS_COLLECTION, id));
+  await withFirestoreTimeout(
+    deleteDoc(doc(requireDb(), PATIENTS_COLLECTION, id)),
+    "Delete patient",
+  );
 }

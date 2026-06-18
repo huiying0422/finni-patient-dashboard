@@ -49,10 +49,9 @@ function App() {
               </p>
               <div className="text-sm text-muted-foreground space-y-2">
                 <p>
-                  Accepts either Firebase Console names (
-                  <code className="text-xs">apiKey</code>,{" "}
-                  <code className="text-xs">projectId</code>, …) or{" "}
-                  <code className="text-xs">VITE_FIREBASE_*</code> in env vars:
+                  Use <code className="text-xs">VITE_FIREBASE_*</code> names in
+                  Vercel (not bare <code className="text-xs">apiKey</code> /
+                  <code className="text-xs">projectId</code>):
                 </p>
                 <ul className="list-disc space-y-1 pl-5 font-mono text-xs">
                   {getFirebaseEnvDiagnostics().map(({ field, envKeys, status }) => (
