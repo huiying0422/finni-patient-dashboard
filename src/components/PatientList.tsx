@@ -1,3 +1,4 @@
+import { AddPatientDialog } from "@/components/AddPatientDialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -86,9 +87,12 @@ export function PatientList() {
             Manage patient records across the care lifecycle.
           </CardDescription>
         </div>
-        <Button variant="outline" size="sm" onClick={() => void refresh()}>
-          Refresh
-        </Button>
+        <div className="flex items-center gap-2">
+          <AddPatientDialog onPatientAdded={refresh} />
+          <Button variant="outline" size="sm" onClick={() => void refresh()}>
+            Refresh
+          </Button>
+        </div>
       </CardHeader>
       <CardContent>
         {loading && <LoadingSkeleton />}

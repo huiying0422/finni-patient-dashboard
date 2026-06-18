@@ -81,6 +81,24 @@ Status badges use lifecycle-specific colors:
 
 ---
 
+## Phase 3: Add patient form
+
+### Add form: data-driven fields with RHF and Zod
+
+The add-patient flow is built from three pieces:
+
+1. **`src/lib/patientFields.ts`** — a declarative array describing each field (`key`, `label`, `inputType`, optional `options`). Covers name fields, date of birth, status select, and nested address subfields.
+2. **`src/components/PatientForm.tsx`** — maps over `patientFields` to render inputs, using **React Hook Form** with **`zodResolver(patientFormSchema)`** for validation aligned with the service layer.
+3. **`src/components/AddPatientDialog.tsx`** — shadcn Dialog opened by an "Add patient" pill button in the list header; on valid submit calls `addPatient`, closes, and triggers list refresh.
+
+**Why data-driven fields:** Adding a new field later is a config change in `patientFields.ts` plus the corresponding entry in `patientFormSchema` — not a form rewrite. The mapper handles text, date, and select input types from the config.
+
+**Why RHF + Zod together:** React Hook Form manages form state and inline errors in the UI; Zod (via `zodResolver`) enforces the same rules the service uses on submit. Invalid input (empty name, future DOB, bad ZIP) is blocked before Firestore.
+
+**Why dialog in list header:** The add action lives where users manage the patient list, and `onPatientAdded` calls `refresh` from `usePatients` so new records appear immediately without a page reload.
+
+---
+
 ## Tooling notes
 
 - **Package manager:** npm (project ships with `package-lock.json`; prompts reference `pnpm` but commands are equivalent).
