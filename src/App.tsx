@@ -1,6 +1,10 @@
 import { PatientList } from "@/components/PatientList";
 import { Toaster } from "@/components/ui/sonner";
-import { firebaseSetupMessage } from "@/lib/firebase";
+import {
+  FIREBASE_CONFIG_FIELDS,
+  firebaseSetupMessage,
+  getFirebaseEnvDiagnostics,
+} from "@/lib/firebase";
 
 function App() {
   return (
@@ -35,14 +39,46 @@ function App() {
           {firebaseSetupMessage ? (
             <div
               role="alert"
-              className="rounded-2xl border border-destructive/30 bg-destructive/5 p-4"
+              className="rounded-2xl border border-destructive/30 bg-destructive/5 p-4 space-y-3"
             >
               <p className="font-medium text-destructive">
                 Firebase not configured
               </p>
-              <p className="mt-1 text-sm text-muted-foreground">
+              <p className="text-sm text-muted-foreground">
                 {firebaseSetupMessage}
               </p>
+              <div className="text-sm text-muted-foreground space-y-2">
+                <p>
+                  Accepts either Firebase Console names (
+                  <code className="text-xs">apiKey</code>,{" "}
+                  <code className="text-xs">projectId</code>, …) or{" "}
+                  <code className="text-xs">VITE_FIREBASE_*</code> in env vars:
+                </p>
+                <ul className="list-disc space-y-1 pl-5 font-mono text-xs">
+                  {getFirebaseEnvDiagnostics().map(({ field, envKeys, status }) => (
+                    <li key={field}>
+                      {field}{" "}
+                      <span className="text-muted-foreground">
+                        ({envKeys.join(" or ")})
+                      </span>{" "}
+                      <span
+                        className={
+                          status === "ok"
+                            ? "text-green-700"
+                            : "text-destructive"
+                        }
+                      >
+                        — {status === "ok" ? "set" : status}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+                <p>
+                  Checklist: enable <strong>Production</strong> (and Preview) for
+                  all {FIREBASE_CONFIG_FIELDS.length} variables → save →
+                  Deployments → Redeploy (required after any env change).
+                </p>
+              </div>
             </div>
           ) : null}
 

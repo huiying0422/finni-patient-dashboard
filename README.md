@@ -84,8 +84,20 @@ allow read, write: if true;  // DEV ONLY
 
 This is a **Vite SPA** — Firebase runs in the browser, but **Firebase config is embedded at build time**. Vercel must have your env vars **before** the build runs.
 
-1. In [Vercel](https://vercel.com) → your project → **Settings → Environment Variables**, add all six `VITE_FIREBASE_*` variables (same values as local `.env`). Enable them for **Production**, **Preview**, and **Development**.
-2. **Redeploy** after adding or changing any variable (Deployments → ⋯ → **Redeploy**). A env change alone does not update an old build.
+1. In [Vercel](https://vercel.com) → your project → **Settings → Environment Variables**, add all six variables below. Enable them for **Production**, **Preview**, and **Development**.
+2. **Redeploy** after adding or changing any variable (Deployments → ⋯ → **Redeploy**). Saving env vars alone does not update an existing deployment — Vite bakes them in during `pnpm build`.
+
+| Firebase Console field | Accepted env var names |
+|------------------------|------------------------|
+| `apiKey` | `VITE_FIREBASE_API_KEY` or `apiKey` |
+| `authDomain` | `VITE_FIREBASE_AUTH_DOMAIN` or `authDomain` |
+| `projectId` | `VITE_FIREBASE_PROJECT_ID` or `projectId` |
+| `storageBucket` | `VITE_FIREBASE_STORAGE_BUCKET` or `storageBucket` |
+| `messagingSenderId` | `VITE_FIREBASE_MESSAGING_SENDER_ID` or `messagingSenderId` |
+| `appId` | `VITE_FIREBASE_APP_ID` or `appId` |
+
+Local `.env` uses `VITE_FIREBASE_*`. Vercel can use either naming style — both are read at build time.
+
 3. In **Firebase Console → Project settings**, confirm the web app `projectId` matches `VITE_FIREBASE_PROJECT_ID`.
 4. If your Google Cloud **API key** has HTTP referrer restrictions, allow your Vercel domain (e.g. `https://*.vercel.app/*`).
 5. Firestore **rules** must allow read/write for testing (see above).

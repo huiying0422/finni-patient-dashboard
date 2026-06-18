@@ -1,35 +1,29 @@
 import { initializeApp, type FirebaseApp } from "firebase/app";
 import { getFirestore, type Firestore } from "firebase/firestore";
+import {
+  firebaseConfig,
+  firebaseSetupMessage,
+  getFirebaseEnvDiagnostics,
+  getMissingFirebaseFields,
+  isFirebaseConfigured,
+} from "./firebaseConfig";
+import { FIREBASE_ENV_ALIASES } from "./resolveFirebaseEnv";
 
-const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
-  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
-  appId: import.meta.env.VITE_FIREBASE_APP_ID,
-};
+export {
+  firebaseConfig,
+  firebaseSetupMessage,
+  getFirebaseEnvDiagnostics,
+  isFirebaseConfigured,
+} from "./firebaseConfig";
 
-const REQUIRED_ENV_KEYS = [
-  "VITE_FIREBASE_API_KEY",
-  "VITE_FIREBASE_AUTH_DOMAIN",
-  "VITE_FIREBASE_PROJECT_ID",
-  "VITE_FIREBASE_STORAGE_BUCKET",
-  "VITE_FIREBASE_MESSAGING_SENDER_ID",
-  "VITE_FIREBASE_APP_ID",
-] as const;
+export { FIREBASE_CONFIG_FIELDS, FIREBASE_ENV_ALIASES } from "./resolveFirebaseEnv";
 
-/** Env keys missing from the build (common when Vercel vars are unset or deploy wasn't rerun). */
+/** Env keys that may supply each missing field (for error display). */
 export function getMissingFirebaseEnvKeys(): string[] {
-  return REQUIRED_ENV_KEYS.filter((key) => !import.meta.env[key]);
+  return getMissingFirebaseFields().flatMap(
+    (field) => FIREBASE_ENV_ALIASES[field],
+  );
 }
-
-export const isFirebaseConfigured = getMissingFirebaseEnvKeys().length === 0;
-
-export const firebaseSetupMessage = isFirebaseConfigured
-  ? null
-  : `Firebase is not configured. Missing environment variable(s): ${getMissingFirebaseEnvKeys().join(", ")}. ` +
-    "On Vercel, add all VITE_FIREBASE_* values under Project Settings → Environment Variables, then redeploy so Vite can embed them at build time.";
 
 const app: FirebaseApp | null = isFirebaseConfigured
   ? initializeApp(firebaseConfig)
