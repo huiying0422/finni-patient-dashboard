@@ -5,10 +5,12 @@ import {
   doc,
   getDoc,
   getDocs,
+  onSnapshot,
   orderBy,
   query,
   serverTimestamp,
   updateDoc,
+  type Unsubscribe,
 } from "firebase/firestore";
 
 import { db } from "@/lib/firebase";
@@ -55,6 +57,30 @@ export async function listPatients(): Promise<Patient[]> {
   const snapshot = await getDocs(patientsQuery);
 
   return snapshot.docs.map((docSnap) => toPatient(docSnap.id, docSnap.data()));
+}
+
+/** Subscribe to live patient list updates; returns an unsubscribe function. */
+export function subscribePatients(
+  onPatients: (patients: Patient[]) => void,
+  onError: (error: Error) => void,
+): Unsubscribe {
+  const patientsQuery = query(
+    collection(db, PATIENTS_COLLECTION),
+    orderBy("createdAt", "desc"),
+  );
+
+  return onSnapshot(
+    patientsQuery,
+    (snapshot) => {
+      const patients = snapshot.docs.map((docSnap) =>
+        toPatient(docSnap.id, docSnap.data()),
+      );
+      onPatients(patients);
+    },
+    (error) => {
+      onError(error);
+    },
+  );
 }
 
 /** Fetch a single patient by id, or null if not found. */

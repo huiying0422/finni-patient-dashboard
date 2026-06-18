@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { toast } from "sonner";
 
 import { PatientForm } from "@/components/PatientForm";
 import { Button } from "@/components/ui/button";
@@ -14,11 +15,7 @@ import {
 import type { PatientFormValues } from "@/lib/types";
 import { addPatient } from "@/services/patients";
 
-type AddPatientDialogProps = {
-  onPatientAdded: () => void | Promise<void>;
-};
-
-export function AddPatientDialog({ onPatientAdded }: AddPatientDialogProps) {
+export function AddPatientDialog() {
   const [open, setOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -32,11 +29,12 @@ export function AddPatientDialog({ onPatientAdded }: AddPatientDialogProps) {
       await addPatient(values);
       setOpen(false);
       setFormKey((current) => current + 1);
-      await onPatientAdded();
+      toast.success("Patient added successfully");
     } catch (error) {
-      setSubmitError(
-        error instanceof Error ? error.message : "Failed to add patient",
-      );
+      const message =
+        error instanceof Error ? error.message : "Failed to add patient";
+      setSubmitError(message);
+      toast.error(message);
     } finally {
       setIsSubmitting(false);
     }

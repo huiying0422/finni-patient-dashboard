@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 
-import { listPatients } from "@/services/patients";
+import { subscribePatients } from "@/services/patients";
 import type { Patient } from "@/lib/types";
 
 export function usePatients() {
@@ -8,24 +8,25 @@ export function usePatients() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const refresh = useCallback(async () => {
+  useEffect(() => {
     setLoading(true);
     setError(null);
 
-    try {
-      const data = await listPatients();
-      setPatients(data);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load patients");
-      setPatients([]);
-    } finally {
-      setLoading(false);
-    }
+    const unsubscribe = subscribePatients(
+      (nextPatients) => {
+        setPatients(nextPatients);
+        setLoading(false);
+        setError(null);
+      },
+      (err) => {
+        setError(err.message || "Failed to load patients");
+        setPatients([]);
+        setLoading(false);
+      },
+    );
+
+    return unsubscribe;
   }, []);
 
-  useEffect(() => {
-    void refresh();
-  }, [refresh]);
-
-  return { patients, loading, error, refresh };
+  return { patients, loading, error };
 }

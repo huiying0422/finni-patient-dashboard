@@ -1,5 +1,6 @@
 import { useState } from "react";
 import type { Timestamp } from "firebase/firestore";
+import { toast } from "sonner";
 
 import { PatientForm } from "@/components/PatientForm";
 import {
@@ -34,8 +35,6 @@ type PatientDetailSheetProps = {
   patient: Patient | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onUpdated: () => void | Promise<void>;
-  onDeleted: () => void | Promise<void>;
 };
 
 const STATUS_BADGE_STYLES: Record<
@@ -104,8 +103,6 @@ export function PatientDetailSheet({
   patient,
   open,
   onOpenChange,
-  onUpdated,
-  onDeleted,
 }: PatientDetailSheetProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -131,11 +128,12 @@ export function PatientDetailSheet({
     try {
       await updatePatient(patient.id, values);
       setIsEditing(false);
-      await onUpdated();
+      toast.success("Patient updated successfully");
     } catch (error) {
-      setActionError(
-        error instanceof Error ? error.message : "Failed to update patient",
-      );
+      const message =
+        error instanceof Error ? error.message : "Failed to update patient";
+      setActionError(message);
+      toast.error(message);
     } finally {
       setIsSubmitting(false);
     }
@@ -152,11 +150,12 @@ export function PatientDetailSheet({
     try {
       await deletePatient(patient.id);
       handleOpenChange(false);
-      await onDeleted();
+      toast.success("Patient deleted successfully");
     } catch (error) {
-      setActionError(
-        error instanceof Error ? error.message : "Failed to delete patient",
-      );
+      const message =
+        error instanceof Error ? error.message : "Failed to delete patient";
+      setActionError(message);
+      toast.error(message);
     } finally {
       setIsDeleting(false);
     }

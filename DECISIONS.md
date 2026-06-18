@@ -125,6 +125,28 @@ Each patient row opens a **shadcn Sheet** showing all fields plus `createdAt` an
 
 **Why confirm destructive actions:** Deleting a patient is irreversible. An AlertDialog forces an explicit confirmation step so accidental clicks on "Delete patient" cannot silently remove records.
 
+**Why Sheet for detail:** A side panel keeps the list visible in context on desktop and slides over on mobile, which fits a dashboard pattern better than navigating to a separate page for a quick record review.
+
+---
+
+## Phase 5: Polish — search, filter, live updates, toasts
+
+### Polish: search, filter, live updates, toasts
+
+The list layer gained five UX improvements:
+
+1. **Search input** — filters by full name as you type.
+2. **Status filter pills** — All, Inquiry, Onboarding, Active, Churned.
+3. **`onSnapshot` live subscription** — replaces the one-time `listPatients` fetch in `usePatients`.
+4. **Sonner toasts** — success and error feedback on create, update, and delete.
+5. **Responsive layout** — card list on mobile, table on desktop; improved skeletons and spacing.
+
+**Why derived state for search/filter:** The source `patients` array from Firestore is never mutated. Search query and status filter are separate UI state; `useMemo` derives `filteredPatients` from the source list. Filtering stays instant, predictable, and easy to reset without re-fetching.
+
+**Why `onSnapshot`:** A one-time fetch requires manual refresh after every write. A Firestore snapshot listener pushes changes to all open clients in real time — when a patient is added, edited, or deleted, the list updates automatically with no refresh button.
+
+**Why toasts:** Inline form errors handle validation; toasts confirm successful CRUD operations and surface unexpected server errors without blocking the UI.
+
 ---
 
 ## Tooling notes
