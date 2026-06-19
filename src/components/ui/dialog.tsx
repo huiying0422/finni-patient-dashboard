@@ -1,34 +1,45 @@
+/**
+ * Phase 3 — shadcn/ui Dialog (Radix) — modal shell for Add Patient flow
+ * Used by: AddPatientDialog.tsx
+ */
 import * as React from "react"
+
+// Dialog primitive — focus trap, escape to close, click-outside to close.
 import { Dialog as DialogPrimitive } from "radix-ui"
 
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { XIcon } from "lucide-react"
 
+// Root — holds open/closed state; AddPatientDialog passes open + onOpenChange here.
 function Dialog({
   ...props
 }: React.ComponentProps<typeof DialogPrimitive.Root>) {
   return <DialogPrimitive.Root data-slot="dialog" {...props} />
 }
 
+// The thing you click to open the popup (our orange "Add patient" button).
 function DialogTrigger({
   ...props
 }: React.ComponentProps<typeof DialogPrimitive.Trigger>) {
   return <DialogPrimitive.Trigger data-slot="dialog-trigger" {...props} />
 }
 
+// Renders the modal into a portal (layer on top of the page) so it isn't clipped.
 function DialogPortal({
   ...props
 }: React.ComponentProps<typeof DialogPrimitive.Portal>) {
   return <DialogPrimitive.Portal data-slot="dialog-portal" {...props} />
 }
 
+// Programmatic close — X button or Cancel can use this.
 function DialogClose({
   ...props
 }: React.ComponentProps<typeof DialogPrimitive.Close>) {
   return <DialogPrimitive.Close data-slot="dialog-close" {...props} />
 }
 
+// Dark semi-transparent blanket behind the white dialog box.
 function DialogOverlay({
   className,
   ...props

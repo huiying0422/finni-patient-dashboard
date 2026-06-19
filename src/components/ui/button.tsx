@@ -1,5 +1,13 @@
+/**
+ * Phase 2 — shadcn/ui Button (Radix Nova preset)
+ * Used by: App shell, PatientList, AddPatientDialog, PatientDetailSheet, PatientForm
+ */
 import * as React from "react"
+
+// cva = build variant/size class strings from props (default, outline, destructive, sm, lg).
 import { cva, type VariantProps } from "class-variance-authority"
+
+// Slot = when asChild=true, merge button styles onto a child (e.g. DialogTrigger).
 import { Slot } from "radix-ui"
 
 import { cn } from "@/lib/utils"
@@ -51,6 +59,8 @@ function Button({
   VariantProps<typeof buttonVariants> & {
     asChild?: boolean
   }) {
+  // asChild=true means "don't render a <button>, use whatever child you wrapped instead"
+  // (used when DialogTrigger wraps this Button).
   const Comp = asChild ? Slot.Root : "button"
 
   return (
@@ -58,8 +68,9 @@ function Button({
       data-slot="button"
       data-variant={variant}
       data-size={size}
+      // cn() merges default pill styles + variant (orange/outline/red) + anything you passed in.
       className={cn(buttonVariants({ variant, size, className }))}
-      {...props}
+      {...props} // onClick, disabled, children text, etc.
     />
   )
 }

@@ -1,10 +1,19 @@
+/**
+ * Phase 4 — shadcn/ui Sheet (Radix Dialog primitive) — patient detail side panel
+ * Used by: PatientDetailSheet.tsx
+ */
 import * as React from "react"
+
+// Radix Dialog under the hood — Sheet is a Dialog that slides from an edge.
 import { Dialog as SheetPrimitive } from "radix-ui"
+
+// X icon for the close button in the top-right of the panel.
 import { XIcon } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 
+// Root — PatientDetailSheet passes open + onOpenChange here.
 function Sheet({ ...props }: React.ComponentProps<typeof SheetPrimitive.Root>) {
   return <SheetPrimitive.Root data-slot="sheet" {...props} />
 }
@@ -27,6 +36,7 @@ function SheetPortal({
   return <SheetPrimitive.Portal data-slot="sheet-portal" {...props} />
 }
 
+// Dimmed overlay behind the sliding panel.
 function SheetOverlay({
   className,
   ...props
@@ -43,6 +53,7 @@ function SheetOverlay({
   )
 }
 
+// The panel itself — default side="right" slides in from the right edge.
 function SheetContent({
   className,
   children,

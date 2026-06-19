@@ -1,7 +1,11 @@
+/**
+ * Phase 2 — shadcn/ui Card — PatientList container shell
+ */
 import * as React from "react"
 
 import { cn } from "@/lib/utils"
 
+// Outer rounded white box — PatientList wraps everything in <Card>.
 function Card({
   className,
   size = "default",
@@ -20,6 +24,7 @@ function Card({
   )
 }
 
+// Top section — title, description, and action buttons (Refresh, Add patient).
 function CardHeader({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
@@ -69,6 +74,7 @@ function CardAction({ className, ...props }: React.ComponentProps<"div">) {
   )
 }
 
+// Main body — search, filters, table, pagination in PatientList.
 function CardContent({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div

@@ -1,4 +1,9 @@
+/**
+ * Phase 3 — shadcn/ui Label (Radix) — accessible field labels on PatientForm
+ */
 import * as React from "react"
+
+// Radix Label — clicking label focuses the linked input (htmlFor + id).
 import { Label as LabelPrimitive } from "radix-ui"
 
 import { cn } from "@/lib/utils"

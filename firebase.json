@@ -1,4 +1,10 @@
 {
+  "_documentation": {
+    "phase": 7,
+    "description": "Firebase Hosting config — serves Vite build output (dist/) as a static SPA with client-side routing rewrites.",
+    "deploy": "npm run deploy (build + firebase deploy --only hosting)",
+    "related": "DECISIONS.md Firebase Hosting section, .env.example"
+  },
   "hosting": {
     "public": "dist",
     "ignore": [

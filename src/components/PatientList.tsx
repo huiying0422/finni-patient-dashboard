@@ -1,42 +1,73 @@
 /**
- * Main patient list view — search, status filtering, pagination, and detail entry.
+ * Phase 2 list + Phase 5 search/filter/pagination/refresh
  *
- * Reads live data from usePatients and derives filtered results in memory so
- * the underlying Firestore list is never mutated by UI filters.
+ * The main table (or cards on phone) you see when the app loads.
+ * Does NOT talk to Firebase directly — asks usePatients for the data.
  */
+// ---------------------------------------------------------------------------
+// IMPORTS — each line pulls in a tool this file needs
+// ---------------------------------------------------------------------------
+
+// useEffect = reset page when filters change; clamp page when list shrinks.
+// useMemo = recompute filtered/sliced list only when inputs change (performance).
+// useState = search text, status filter, current page, which patient sheet is open.
 import { useEffect, useMemo, useState } from "react";
+
+// RefreshCw = spinning arrow icon on the Refresh button.
 import { RefreshCw } from "lucide-react";
 
+// AddPatientDialog = orange "Add patient" button + modal (self-contained).
 import { AddPatientDialog } from "@/components/AddPatientDialog";
+
+// PatientDetailSheet = side panel for view/edit/delete when you click a row.
 import { PatientDetailSheet } from "@/components/PatientDetailSheet";
+
+// Badge = small colored status pill (Inquiry, Active, …).
 import { Badge } from "@/components/ui/badge";
+
+// Button = Refresh, status filter pills, pagination Previous/Next.
 import { Button } from "@/components/ui/button";
+
+// Card pieces = white rounded box wrapping the whole patient list UI.
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
+  Card, // outer shell
+  CardContent, // main body (search, table, pagination)
+  CardDescription, // subtitle under "Patients"
+  CardHeader, // top row with title + action buttons
+  CardTitle, // "Patients" heading
 } from "@/components/ui/card";
+
+// Input = search-by-name text box.
 import { Input } from "@/components/ui/input";
+
+// Skeleton = gray loading bars while Firestore is fetching.
 import { Skeleton } from "@/components/ui/skeleton";
+
+// Table pieces = desktop layout (hidden on phones — cards used instead).
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
+  Table, // wraps <table> with horizontal scroll
+  TableBody, // data rows
+  TableCell, // one cell in a row
+  TableHead, // column header cell
+  TableHeader, // header row group
+  TableRow, // one patient row (clickable)
 } from "@/components/ui/table";
+
+// usePatients = hook that owns Firestore subscription (patients, loading, error, refresh).
 import { usePatients } from "@/hooks/usePatients";
+
+// Formatters for names, dates, status colors — no Firebase here.
 import {
   formatDateOfBirth,
   formatFullName,
   STATUS_BADGE_STYLES,
   type PatientStatus,
 } from "@/lib/patientFormat";
+
+// Patient = full record type from types.ts.
 import type { Patient } from "@/lib/types";
 
+/** How many rows per page — change this number to show more or fewer at once. */
 const PAGE_SIZE = 20;
 
 type StatusFilter = "All" | PatientStatus;
@@ -49,6 +80,10 @@ const STATUS_FILTERS: StatusFilter[] = [
   "Churned",
 ];
 
+/**
+ * Narrows the full patient list by search box and status pills.
+ * Does NOT change Firestore — only hides rows on screen (filtering in memory).
+ */
 function filterPatients(
   patients: Patient[],
   searchQuery: string,
@@ -57,32 +92,33 @@ function filterPatients(
   const normalizedQuery = searchQuery.trim().toLowerCase();
 
   return patients.filter((patient) => {
+    // Filter 1: status pill — skip if patient status doesn't match (unless "All").
     if (statusFilter !== "All" && patient.status !== statusFilter) {
       return false;
     }
 
+    // Filter 2: empty search = show everyone who passed status filter.
     if (!normalizedQuery) {
       return true;
     }
 
+    // Filter 3: search matches if full name contains the typed letters.
     return formatFullName(patient).toLowerCase().includes(normalizedQuery);
   });
 }
 
+/** Small colored pill showing Inquiry / Onboarding / Active / Churned. */
 function StatusBadge({ status }: { status: PatientStatus }) {
   const styles = STATUS_BADGE_STYLES[status];
 
   return (
-    <Badge
-      variant="outline"
-      className="border-transparent"
-      style={styles}
-    >
+    <Badge variant="outline" className="border-transparent" style={styles}>
       {status}
     </Badge>
   );
 }
 
+/** Gray placeholder bars while Firestore is still loading. */
 function LoadingSkeleton() {
   return (
     <div className="space-y-3">
@@ -93,6 +129,7 @@ function LoadingSkeleton() {
   );
 }
 
+/** Phone layout — one tappable card per patient instead of a table. */
 function PatientCard({
   patient,
   onSelect,
@@ -130,30 +167,39 @@ function PatientCard({
 }
 
 export function PatientList() {
+  // Pull live data + loading/error from the hook — no direct Firestore here.
   const { patients, loading, error, projectId, refresh } = usePatients();
+
+  // What the user typed in the search box.
   const [searchQuery, setSearchQuery] = useState("");
+
+  // Which status pill is selected ("All" or a specific status).
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("All");
+
+  // Current page number (1-based) for pagination.
   const [page, setPage] = useState(1);
-  const [selectedPatientId, setSelectedPatientId] = useState<string | null>(
-    null,
-  );
+
+  // Firestore document id of patient whose detail sheet is open (or null).
+  const [selectedPatientId, setSelectedPatientId] = useState<string | null>(null);
+
+  // Is the side panel visible?
   const [sheetOpen, setSheetOpen] = useState(false);
 
+  // Recompute filtered list only when patients, search, or status filter changes.
   const filteredPatients = useMemo(
     () => filterPatients(patients, searchQuery, statusFilter),
     [patients, searchQuery, statusFilter],
   );
 
-  const totalPages = Math.max(
-    1,
-    Math.ceil(filteredPatients.length / PAGE_SIZE),
-  );
+  const totalPages = Math.max(1, Math.ceil(filteredPatients.length / PAGE_SIZE));
 
+  // Slice just the 20 (or PAGE_SIZE) patients for the current page.
   const paginatedPatients = useMemo(() => {
     const start = (page - 1) * PAGE_SIZE;
     return filteredPatients.slice(start, start + PAGE_SIZE);
   }, [filteredPatients, page]);
 
+  // Find the full patient object for whoever's detail sheet is open.
   const selectedPatient =
     patients.find((patient) => patient.id === selectedPatientId) ?? null;
 
@@ -164,16 +210,19 @@ export function PatientList() {
     filteredPatients.length === 0 ? 0 : (page - 1) * PAGE_SIZE + 1;
   const rangeEnd = Math.min(page * PAGE_SIZE, filteredPatients.length);
 
+  // When user types a new search or picks a new status, jump back to page 1.
   useEffect(() => {
     setPage(1);
   }, [searchQuery, statusFilter]);
 
+  // If you delete patients and current page is now too high, step down.
   useEffect(() => {
     if (page > totalPages) {
       setPage(totalPages);
     }
   }, [page, totalPages]);
 
+  /** User tapped a row or card — open the side panel for that person. */
   function openPatientDetail(patient: Patient) {
     setSelectedPatientId(patient.id);
     setSheetOpen(true);
@@ -182,6 +231,7 @@ export function PatientList() {
   return (
     <>
       <Card className="mx-auto w-full max-w-5xl">
+        {/* ----- HEADER: title + Refresh + Add patient ----- */}
         <CardHeader className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div>
             <CardTitle>Patients</CardTitle>
@@ -208,6 +258,7 @@ export function PatientList() {
         </CardHeader>
 
         <CardContent className="space-y-4">
+          {/* ----- SEARCH + STATUS FILTER PILLS ----- */}
           <div className="space-y-3">
             <Input
               type="search"
@@ -234,17 +285,18 @@ export function PatientList() {
             </div>
           </div>
 
+          {/* ----- LOADING STATE ----- */}
           {loading && <LoadingSkeleton />}
 
+          {/* ----- ERROR STATE ----- */}
           {!loading && error && (
             <div className="flex flex-col items-start gap-3 rounded-2xl border border-destructive/30 bg-destructive/5 p-6">
-              <p className="font-medium text-destructive">
-                Could not load patients
-              </p>
+              <p className="font-medium text-destructive">Could not load patients</p>
               <p className="text-sm text-muted-foreground">{error}</p>
             </div>
           )}
 
+          {/* ----- EMPTY DATABASE ----- */}
           {!loading && !error && patients.length === 0 && (
             <div className="rounded-2xl border border-dashed border-border bg-muted/40 p-10 text-center">
               <p className="font-medium text-foreground">No patients yet</p>
@@ -254,6 +306,7 @@ export function PatientList() {
             </div>
           )}
 
+          {/* ----- FILTERS MATCH NOTHING ----- */}
           {!loading && !error && patients.length > 0 && filteredPatients.length === 0 && (
             <div className="rounded-2xl border border-dashed border-border bg-muted/40 p-10 text-center">
               <p className="font-medium text-foreground">No matching patients</p>
@@ -263,6 +316,7 @@ export function PatientList() {
             </div>
           )}
 
+          {/* ----- DATA: mobile cards + desktop table ----- */}
           {!loading && !error && paginatedPatients.length > 0 && (
             <>
               <div className="space-y-3 md:hidden">
@@ -299,9 +353,7 @@ export function PatientList() {
                         <TableCell className="text-sm text-muted-foreground">
                           {patient.gender ?? "—"}
                         </TableCell>
-                        <TableCell>
-                          {formatDateOfBirth(patient.dateOfBirth)}
-                        </TableCell>
+                        <TableCell>{formatDateOfBirth(patient.dateOfBirth)}</TableCell>
                         <TableCell>
                           <StatusBadge status={patient.status} />
                         </TableCell>
@@ -316,6 +368,7 @@ export function PatientList() {
             </>
           )}
 
+          {/* ----- PAGINATION (only when more than one page) ----- */}
           {!loading && !error && filteredPatients.length > PAGE_SIZE && (
             <div className="flex flex-col items-center justify-between gap-3 sm:flex-row">
               <p className="text-sm text-muted-foreground">
@@ -344,10 +397,10 @@ export function PatientList() {
             </div>
           )}
 
+          {/* ----- FOOTER COUNTS ----- */}
           {!loading && !error && patients.length > 0 && (
             <p className="text-sm text-muted-foreground">
-              Showing {rangeStart}–{rangeEnd} of {filteredPatients.length}{" "}
-              patients
+              Showing {rangeStart}–{rangeEnd} of {filteredPatients.length} patients
               {hasActiveFilters ? " (filtered)" : ""}
               {patients.length !== filteredPatients.length
                 ? ` · ${patients.length} total`
@@ -357,6 +410,7 @@ export function PatientList() {
             </p>
           )}
 
+          {/* ----- DEBUG: project id when load failed ----- */}
           {!loading && error && (
             <p className="text-xs font-mono text-muted-foreground">
               Firebase project: {projectId}
@@ -365,6 +419,7 @@ export function PatientList() {
         </CardContent>
       </Card>
 
+      {/* Side panel — lives outside the Card so it can overlay the whole page */}
       <PatientDetailSheet
         patient={selectedPatient}
         open={sheetOpen}

@@ -1,15 +1,27 @@
+/**
+ * Phase 4 — shadcn/ui AlertDialog (Radix) — destructive delete confirmation
+ * Used by: PatientDetailSheet.tsx (delete patient)
+ */
+// React = types for component props (ComponentProps).
 import * as React from "react"
+
+// AlertDialog primitive from Radix — modal that REQUIRES explicit confirm/cancel (not dismissible by accident).
 import { AlertDialog as AlertDialogPrimitive } from "radix-ui"
 
+// cn = merge Tailwind classes.
 import { cn } from "@/lib/utils"
+
+// Button = styled Cancel and Delete actions inside the dialog.
 import { Button } from "@/components/ui/button"
 
+// Root — wraps the whole confirm flow; no open prop needed when using Trigger.
 function AlertDialog({
   ...props
 }: React.ComponentProps<typeof AlertDialogPrimitive.Root>) {
   return <AlertDialogPrimitive.Root data-slot="alert-dialog" {...props} />
 }
 
+// Wraps the red "Delete patient" button — clicking opens the confirm box.
 function AlertDialogTrigger({
   ...props
 }: React.ComponentProps<typeof AlertDialogPrimitive.Trigger>) {
@@ -18,6 +30,7 @@ function AlertDialogTrigger({
   )
 }
 
+// Renders dialog into document body so it layers above the sheet.
 function AlertDialogPortal({
   ...props
 }: React.ComponentProps<typeof AlertDialogPrimitive.Portal>) {
@@ -26,6 +39,7 @@ function AlertDialogPortal({
   )
 }
 
+// Semi-transparent backdrop behind the confirm box.
 function AlertDialogOverlay({
   className,
   ...props
@@ -42,6 +56,7 @@ function AlertDialogOverlay({
   )
 }
 
+// White centered box with title, description, and action buttons.
 function AlertDialogContent({
   className,
   ...props
@@ -116,6 +131,7 @@ function AlertDialogDescription({
   )
 }
 
+// Confirm button — wired to Radix Action so dialog closes on click.
 function AlertDialogAction({
   className,
   ...props
@@ -127,6 +143,7 @@ function AlertDialogAction({
   )
 }
 
+// Cancel button — wired to Radix Cancel; safe way to back out.
 function AlertDialogCancel({
   className,
   ...props

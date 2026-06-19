@@ -1,7 +1,11 @@
+/**
+ * Phase 2 — shadcn/ui Table — desktop patient list layout (md+ breakpoint)
+ */
 import * as React from "react"
 
 import { cn } from "@/lib/utils"
 
+// Wraps <table> in a div so wide tables scroll sideways on small screens.
 function Table({ className, ...props }: React.ComponentProps<"table">) {
   return (
     <div
@@ -17,6 +21,7 @@ function Table({ className, ...props }: React.ComponentProps<"table">) {
   )
 }
 
+// Header row group — column titles like "Name", "Gender".
 function TableHeader({ className, ...props }: React.ComponentProps<"thead">) {
   return (
     <thead
@@ -27,6 +32,7 @@ function TableHeader({ className, ...props }: React.ComponentProps<"thead">) {
   )
 }
 
+// Body — one TableRow per patient from PatientList.
 function TableBody({ className, ...props }: React.ComponentProps<"tbody">) {
   return (
     <tbody
@@ -50,6 +56,7 @@ function TableFooter({ className, ...props }: React.ComponentProps<"tfoot">) {
   )
 }
 
+// Row — PatientList adds cursor-pointer and onClick to open detail sheet.
 function TableRow({ className, ...props }: React.ComponentProps<"tr">) {
   return (
     <tr

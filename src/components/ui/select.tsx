@@ -1,9 +1,15 @@
+/**
+ * Phase 3 — shadcn/ui Select (Radix) — status and gender dropdowns on PatientForm
+ */
 import * as React from "react"
+
+// Select primitive — accessible keyboard-friendly dropdown (better than native <select> styling).
 import { Select as SelectPrimitive } from "radix-ui"
 
 import { cn } from "@/lib/utils"
 import { ChevronDownIcon, CheckIcon, ChevronUpIcon } from "lucide-react"
 
+// Root — PatientForm Controller sets value + onValueChange here.
 function Select({
   ...props
 }: React.ComponentProps<typeof SelectPrimitive.Root>) {
@@ -23,12 +29,14 @@ function SelectGroup({
   )
 }
 
+// Shows selected label or placeholder text inside the trigger.
 function SelectValue({
   ...props
 }: React.ComponentProps<typeof SelectPrimitive.Value>) {
   return <SelectPrimitive.Value data-slot="select-value" {...props} />
 }
 
+// The clickable box that opens the dropdown list.
 function SelectTrigger({
   className,
   size = "default",
@@ -55,6 +63,7 @@ function SelectTrigger({
   )
 }
 
+// Floating list of options — rendered in a portal above other UI.
 function SelectContent({
   className,
   children,
@@ -101,6 +110,7 @@ function SelectLabel({
   )
 }
 
+// One row in the dropdown — checkmark shows when selected.
 function SelectItem({
   className,
   children,

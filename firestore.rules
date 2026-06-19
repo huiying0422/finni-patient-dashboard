@@ -1,9 +1,28 @@
+// =============================================================================
+// Phase 6 — Firestore security rules (deny-by-default + production sketch)
+// =============================================================================
+//
+// PURPOSE:
+//   Documents the least-privilege target for production. The committed file
+//   denies ALL access — real dev/demo rules must be published in Firebase Console.
+//
+// DEMO (Console only — never commit open rules here):
+//   allow read, write: if true;  // DEV ONLY — patients collection
+//
+// PRODUCTION TARGET (uncomment and publish when Firebase Auth is enabled):
+//   Provider-scoped access via providerId == request.auth.uid
+//
+// RELATED: src/services/patients.ts, src/lib/constants.ts, README Compliance section
+// =============================================================================
+
 rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Deny everything by default (least privilege).
+    // -------------------------------------------------------------------------
+    // Default deny — least privilege (Phase 6 compliance posture)
+    // -------------------------------------------------------------------------
     match /{document=**} {
       allow read, write: if false;
     }
@@ -25,16 +44,17 @@ service cloud.firestore {
     //     && request.resource.data.providerId == request.auth.uid
     //     && request.resource.data.keys().hasAll([
     //       'firstName', 'lastName', 'dateOfBirth', 'status', 'address',
+    //       'gender', 'healthHistory', 'medicationHistory',
     //       'createdAt', 'updatedAt', 'lastEditedBy'
     //     ]);
     // }
     //
     // Notes:
-    // - providerId ties each record to a single authenticated provider.
+    // - providerId ties each record to a single authenticated provider (multi-tenant).
     // - lastEditedBy should be set server-side (Cloud Function) or validated
     //   against request.auth.uid in rules once auth is live.
-    // - For local development, the Firebase Console may temporarily use open
-    //   rules; never ship those to production.
+    // - Clinical fields (healthHistory, medicationHistory) need heightened access control.
+    // - For local development, publish temporary open rules in Console only.
     //
     // -------------------------------------------------------------------------
   }
