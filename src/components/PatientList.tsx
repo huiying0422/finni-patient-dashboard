@@ -13,8 +13,8 @@
 // useState = search text, status filter, current page, which patient sheet is open.
 import { useEffect, useMemo, useState } from "react";
 
-// RefreshCw = spinning arrow icon on the Refresh button.
-import { RefreshCw } from "lucide-react";
+// RefreshCw = spinning arrow on Refresh; ChevronRight = row affordance to open detail.
+import { ChevronRight, RefreshCw } from "lucide-react";
 
 // AddPatientDialog = orange "Add patient" button + modal (self-contained).
 import { AddPatientDialog } from "@/components/AddPatientDialog";
@@ -56,10 +56,11 @@ import {
 // usePatients = hook that owns Firestore subscription (patients, loading, error, refresh).
 import { usePatients } from "@/hooks/usePatients";
 
-// Formatters for names, dates, status colors — no Firebase here.
+// Formatters for names, dates, initials, status colors — no Firebase here.
 import {
   formatDateOfBirth,
   formatFullName,
+  formatInitials,
   STATUS_BADGE_STYLES,
   type PatientStatus,
 } from "@/lib/patientFormat";
@@ -118,6 +119,18 @@ function StatusBadge({ status }: { status: PatientStatus }) {
   );
 }
 
+/** Circle with two-letter initials — list-only visual anchor (address stays in detail sheet). */
+function PatientAvatar({ patient }: { patient: Patient }) {
+  return (
+    <div
+      aria-hidden
+      className="flex size-9 shrink-0 items-center justify-center rounded-full bg-muted text-sm font-medium text-foreground"
+    >
+      {formatInitials(patient)}
+    </div>
+  );
+}
+
 /** Gray placeholder bars while Firestore is still loading. */
 function LoadingSkeleton() {
   return (
@@ -129,7 +142,7 @@ function LoadingSkeleton() {
   );
 }
 
-/** Phone layout — one tappable card per patient instead of a table. */
+/** Phone layout — same scan surface as desktop table (no address; open detail for full record). */
 function PatientCard({
   patient,
   onSelect,
@@ -143,24 +156,23 @@ function PatientCard({
       onClick={() => onSelect(patient)}
       className="w-full rounded-2xl border border-border bg-card p-4 text-left transition-colors hover:bg-muted/40"
     >
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <p className="font-medium text-foreground">
+      <div className="flex items-center gap-3">
+        <PatientAvatar patient={patient} />
+        <div className="min-w-0 flex-1">
+          <p className="truncate font-medium text-foreground">
             {formatFullName(patient)}
-            {patient.gender ? (
-              <span className="ml-2 text-sm font-normal text-muted-foreground">
-                {patient.gender}
-              </span>
-            ) : null}
+            <span className="ml-2 text-sm font-normal text-muted-foreground">
+              {patient.gender ?? "—"}
+            </span>
           </p>
           <p className="mt-1 text-sm text-muted-foreground">
             {formatDateOfBirth(patient.dateOfBirth)}
           </p>
-          <p className="mt-1 text-sm text-muted-foreground">
-            {patient.address.city}, {patient.address.state}
-          </p>
         </div>
-        <StatusBadge status={patient.status} />
+        <div className="flex shrink-0 items-center gap-2">
+          <StatusBadge status={patient.status} />
+          <ChevronRight className="size-4 text-muted-foreground" aria-hidden />
+        </div>
       </div>
     </button>
   );
@@ -333,11 +345,16 @@ export function PatientList() {
                 <Table>
                   <TableHeader>
                     <TableRow>
+                      <TableHead className="w-12">
+                        <span className="sr-only">Avatar</span>
+                      </TableHead>
                       <TableHead>Name</TableHead>
                       <TableHead>Gender</TableHead>
                       <TableHead>Date of birth</TableHead>
                       <TableHead>Status</TableHead>
-                      <TableHead>Location</TableHead>
+                      <TableHead className="w-10">
+                        <span className="sr-only">Open details</span>
+                      </TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -347,6 +364,9 @@ export function PatientList() {
                         className="cursor-pointer"
                         onClick={() => openPatientDetail(patient)}
                       >
+                        <TableCell>
+                          <PatientAvatar patient={patient} />
+                        </TableCell>
                         <TableCell className="font-medium">
                           {formatFullName(patient)}
                         </TableCell>
@@ -357,8 +377,11 @@ export function PatientList() {
                         <TableCell>
                           <StatusBadge status={patient.status} />
                         </TableCell>
-                        <TableCell className="text-muted-foreground">
-                          {patient.address.city}, {patient.address.state}
+                        <TableCell>
+                          <ChevronRight
+                            className="size-4 text-muted-foreground"
+                            aria-hidden
+                          />
                         </TableCell>
                       </TableRow>
                     ))}

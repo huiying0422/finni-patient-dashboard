@@ -38,6 +38,18 @@ type NameFields = {
 };
 
 /**
+ * Two-letter avatar label from first and last name, e.g. "Jane Doe" → "JD".
+ * Used in the patient list for quick visual scanning.
+ */
+export function formatInitials(patient: NameFields): string {
+  const first = patient.firstName.trim().charAt(0).toUpperCase();
+  const last = patient.lastName.trim().charAt(0).toUpperCase();
+  const initials = `${first}${last}`.trim();
+
+  return initials || "?";
+}
+
+/**
  * Turns first + optional middle + last into one display name, e.g. "Jane Marie Doe".
  * Skips middle name when it's blank so you don't get double spaces.
  */
