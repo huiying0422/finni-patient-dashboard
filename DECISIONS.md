@@ -405,6 +405,8 @@ Zod normalization turns empty optional fields (`middleName`, `address.line2`) in
 
 **Why:** Demonstrates the data-driven pattern in action: new workflow fields are a config + schema change, not a form rewrite. **"Prefer not to say"** respects patient autonomy and data minimization — we collect only what the patient is willing to share, without forcing a binary choice.
 
+**Legacy data:** Gender was added after ~105 demo patients already existed in Firestore without a `gender` field. The UI tolerates missing values on read (`—` in the list and detail sheet), but edit/save requires the field because `patientFormSchema` validates on write. Rather than manual one-by-one edits, we run a **one-time backfill script** (`npm run backfill:patients`) that patches only incomplete records in place — existing names, addresses, and audit timestamps are preserved.
+
 ### Health and medication history (clinical PHI)
 
 **Decision:** Add required **`healthHistory`** and **`medicationHistory`** as multi-line paragraph text (`inputType: "textarea"`).
@@ -414,6 +416,28 @@ Zod normalization turns empty optional fields (`middleName`, `address.line2`) in
 **PHI posture:** These fields are **higher-sensitivity clinical PHI** than demographics. They are stored in Firestore and shown only in the patient detail sheet — **never** sent to an LLM, analytics, `console` output, or any third-party service from this codebase. Production use would demand heightened access control, audit logging on read/write, and likely a dedicated EHR/clinical data store rather than a general-purpose dashboard collection.
 
 **Why textarea extends the pattern:** Same as gender — config + schema + one `FieldControl` branch; no duplicate form markup.
+
+**Legacy data:** Like gender, these fields were added after patients were already seeded. Legacy documents missing `healthHistory` or `medicationHistory` show `—` in the detail sheet and block save until filled. The same backfill script sets both to **`N/A`** when absent (matching the form helper text for “none to report”), while leaving all other fields untouched.
+
+### Legacy patient backfill script
+
+**Decision:** Add `scripts/backfill-patient-fields.ts` with npm scripts `backfill:patients:dry-run` and `backfill:patients`.
+
+**Behavior:**
+
+| Missing field | Backfill value |
+|---------------|----------------|
+| `gender` | Random choice from `PATIENT_GENDER_VALUES` (`Male`, `Female`, `Other`, `Prefer not to say`) |
+| `healthHistory` | `N/A` |
+| `medicationHistory` | `N/A` |
+
+Also sets `updatedAt` (server timestamp) and `lastEditedBy` to `migration-backfill@finni.local`. Skips documents that already have valid values. **Dry-run** logs patches without writing.
+
+**Why random gender for this take-home:** Demo data only — fills the list Gender column quickly without staff editing 105 records. Production would use `"Prefer not to say"` or manual verification, not synthetic demographics.
+
+**Why a script, not re-seed:** Keeps existing Firestore records (manual edits, realistic names/addresses). No app bundle change; run once from the CLI with `.env` credentials.
+
+**Schema unchanged:** `patientFormSchema` still requires gender and clinical fields on all new writes — backfill brings old rows up to the same shape.
 
 ---
 
