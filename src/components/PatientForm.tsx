@@ -17,6 +17,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
 import {
   defaultPatientFormValues,
   patientFields,
@@ -76,7 +77,7 @@ function FieldControl({
         control={control}
         render={({ field: controllerField }) => (
           <Select
-            value={controllerField.value as string}
+            value={(controllerField.value as string) || undefined}
             onValueChange={controllerField.onChange}
           >
             <SelectTrigger
@@ -95,6 +96,17 @@ function FieldControl({
             </SelectContent>
           </Select>
         )}
+      />
+    );
+  }
+
+  if (field.inputType === "textarea") {
+    return (
+      <Textarea
+        id={fieldId}
+        rows={4}
+        aria-invalid={!!error}
+        {...register(field.key as keyof PatientFormValues & string)}
       />
     );
   }
@@ -147,7 +159,9 @@ export function PatientForm({
             <div
               key={field.key}
               className={
-                field.key === "address.street" || field.key === "address.line2"
+                field.inputType === "textarea" ||
+                field.key === "address.street" ||
+                field.key === "address.line2"
                   ? "sm:col-span-2"
                   : ""
               }
@@ -161,6 +175,11 @@ export function PatientForm({
                   </span>
                 ) : null}
               </Label>
+              {field.helperText ? (
+                <p className="mt-1 text-sm text-muted-foreground">
+                  {field.helperText}
+                </p>
+              ) : null}
               <div className="mt-1.5">
                 <FieldControl
                   field={field}

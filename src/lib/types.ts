@@ -18,6 +18,10 @@ const US_STATE_REGEX = /^[A-Z]{2}$/;
 const trimmedRequired = (message: string) =>
   z.string().trim().min(1, message);
 
+/** Required multi-line clinical note — use "N/A" when the patient has none. */
+const clinicalParagraphRequired = (label: string) =>
+  trimmedRequired(`${label} is required. Enter "N/A" if there is none.`);
+
 /** Trim optional strings; empty strings become undefined so Firestore can omit the field. */
 const trimmedOptional = () =>
   z
@@ -53,6 +57,14 @@ export const addressSchema = z.object({
     ),
 });
 
+/** Closed set of gender values — shared by Zod validation and the form select config. */
+export const PATIENT_GENDER_VALUES = [
+  "Male",
+  "Female",
+  "Other",
+  "Prefer not to say",
+] as const;
+
 /**
  * Form values for creating or updating a patient record.
  * middleName and address.line2 are the only optional fields.
@@ -61,6 +73,9 @@ export const patientFormSchema = z.object({
   firstName: trimmedRequired("First name is required"),
   middleName: trimmedOptional(),
   lastName: trimmedRequired("Last name is required"),
+  gender: z.enum(PATIENT_GENDER_VALUES, {
+    message: "Please select a gender",
+  }),
   dateOfBirth: z
     .string()
     .trim()
@@ -75,6 +90,9 @@ export const patientFormSchema = z.object({
     message: "Please select a patient status",
   }),
   address: addressSchema,
+  // Clinical PHI — higher sensitivity than demographics; Firestore only in this app.
+  healthHistory: clinicalParagraphRequired("Health history"),
+  medicationHistory: clinicalParagraphRequired("Medication history"),
 });
 
 /** Inferred from the schema — keeps form types in sync with validation rules automatically. */

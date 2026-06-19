@@ -66,7 +66,10 @@ function getPatientFieldValue(
   if (key === "firstName") return patient.firstName;
   if (key === "middleName") return patient.middleName ?? "—";
   if (key === "lastName") return patient.lastName;
+  if (key === "gender") return patient.gender ?? "—";
   if (key === "status") return patient.status;
+  if (key === "healthHistory") return patient.healthHistory ?? "—";
+  if (key === "medicationHistory") return patient.medicationHistory ?? "—";
 
   return "—";
 }
@@ -177,7 +180,9 @@ export function PatientDetailSheet({
                 <div
                   key={field.key}
                   className={
-                    field.key === "address.street" || field.key === "address.line2"
+                    field.inputType === "textarea" ||
+                    field.key === "address.street" ||
+                    field.key === "address.line2"
                       ? "sm:col-span-2"
                       : ""
                   }
@@ -185,7 +190,13 @@ export function PatientDetailSheet({
                   <dt className="text-sm font-medium text-muted-foreground">
                     {field.label}
                   </dt>
-                  <dd className="mt-1 text-sm text-foreground">
+                  <dd
+                    className={
+                      field.inputType === "textarea"
+                        ? "mt-1 whitespace-pre-wrap text-sm text-foreground"
+                        : "mt-1 text-sm text-foreground"
+                    }
+                  >
                     {getPatientFieldValue(patient, field.key)}
                   </dd>
                 </div>

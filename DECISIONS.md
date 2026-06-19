@@ -397,6 +397,24 @@ Zod normalization turns empty optional fields (`middleName`, `address.line2`) in
 
 **Why:** Optional form fields should simply be absent from stored documents, not saved as `undefined`. This keeps the schema normalization without breaking Firestore writes.
 
+### Gender field
+
+**Decision:** Add a required **`gender`** field with a closed enum: `Male`, `Female`, `Other`, `Prefer not to say`.
+
+**Implementation:** One schema entry in `patientFormSchema` (`z.enum(PATIENT_GENDER_VALUES)`) plus one config row in `patientFields.ts` (`inputType: "select"`). `PatientForm` and the detail sheet pick it up automatically by mapping over `patientFields` — no form special-casing. `PatientList` adds a compact Gender column after Name.
+
+**Why:** Demonstrates the data-driven pattern in action: new workflow fields are a config + schema change, not a form rewrite. **"Prefer not to say"** respects patient autonomy and data minimization — we collect only what the patient is willing to share, without forcing a binary choice.
+
+### Health and medication history (clinical PHI)
+
+**Decision:** Add required **`healthHistory`** and **`medicationHistory`** as multi-line paragraph text (`inputType: "textarea"`).
+
+**Implementation:** Extended the data-driven config with a new **`textarea`** input type (shadcn `Textarea` in `PatientForm`). Two schema entries (`clinicalParagraphRequired`) plus two `patientFields` rows after the address block. Detail sheet renders them full-width with `whitespace-pre-wrap`; the list table omits them because they are long free text.
+
+**PHI posture:** These fields are **higher-sensitivity clinical PHI** than demographics. They are stored in Firestore and shown only in the patient detail sheet — **never** sent to an LLM, analytics, `console` output, or any third-party service from this codebase. Production use would demand heightened access control, audit logging on read/write, and likely a dedicated EHR/clinical data store rather than a general-purpose dashboard collection.
+
+**Why textarea extends the pattern:** Same as gender — config + schema + one `FieldControl` branch; no duplicate form markup.
+
 ---
 
 ## Phase 4: Detail, edit, and delete

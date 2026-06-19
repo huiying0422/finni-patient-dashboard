@@ -110,6 +110,11 @@ function PatientCard({
         <div>
           <p className="font-medium text-foreground">
             {formatFullName(patient)}
+            {patient.gender ? (
+              <span className="ml-2 text-sm font-normal text-muted-foreground">
+                {patient.gender}
+              </span>
+            ) : null}
           </p>
           <p className="mt-1 text-sm text-muted-foreground">
             {formatDateOfBirth(patient.dateOfBirth)}
@@ -275,6 +280,7 @@ export function PatientList() {
                   <TableHeader>
                     <TableRow>
                       <TableHead>Name</TableHead>
+                      <TableHead>Gender</TableHead>
                       <TableHead>Date of birth</TableHead>
                       <TableHead>Status</TableHead>
                       <TableHead>Location</TableHead>
@@ -289,6 +295,9 @@ export function PatientList() {
                       >
                         <TableCell className="font-medium">
                           {formatFullName(patient)}
+                        </TableCell>
+                        <TableCell className="text-sm text-muted-foreground">
+                          {patient.gender ?? "—"}
                         </TableCell>
                         <TableCell>
                           {formatDateOfBirth(patient.dateOfBirth)}
